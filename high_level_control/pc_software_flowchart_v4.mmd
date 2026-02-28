@@ -1,0 +1,191 @@
+flowchart TD
+
+    START(["🖥️ python main.py"])
+    START --> LOAD_CFG
+
+    LOAD_CFG["robot_config.py
+    ───────────────────────────
+    L1=150 · L2=100 · L3=50 mm
+    STEPS_PER_DEG J1 J2 J3 · STEPS_PER_MM_Z
+    DUPLO_W=8mm · DUPLO_H=19.2mm
+    CLEARANCE_HEIGHT=40mm · NUM_LAYERS=3
+    SUPPLY_X · SUPPLY_Y · PORT · BAUD"]
+
+    LOAD_CFG --> LOAD_PLAN
+
+    LOAD_PLAN["load_floor_plan('floor_plan.txt')
+    ───────────────────────────
+    Read file line by line
+    For each row, split into tokens
+    if int(token) == 1:
+        x = col × DUPLO_W + DUPLO_W/2
+        y = row × DUPLO_W + DUPLO_W/2
+        append (x, y)
+    Return list of (x, y) pairs
+    — same layout used for every layer"]
+
+    LOAD_PLAN --> VALIDATE
+
+    subgraph PLANNER ["   🗂️  Build Planner   "]
+        VALIDATE{"All (x,y)
+        within reach?
+        IK check each"}
+
+        VALIDATE -- "❌ Unreachable" --> WARN["Print warning
+        Skip block and continue"]
+        WARN --> VALIDATE
+
+        VALIDATE -- "✅ All valid" --> SORT
+
+        SORT["Sort pairs — nearest-first
+        pairs.sort(key=lambda p: p[0]²+p[1]²)"]
+
+        SORT --> WAYPOINTS["Insert clearance waypoints
+        Every lateral move goes via
+        z = currentZ + CLEARANCE_HEIGHT
+        before moving to target (x,y)"]
+    end
+
+    WAYPOINTS --> SERIAL_OPEN
+
+    SERIAL_OPEN["Serial Layer
+    ───────────────────────────
+    Open PORT at BAUD 115200
+    Wait for READY from Arduino"]
+
+    SERIAL_OPEN --> RDY{"READY
+    received?"}
+
+    RDY -- "timeout" --> SER_ERR(["❌ No READY
+    Check USB · firmware · Exit"])
+
+    RDY -- YES --> CMD_HOME["send_command('HOME?')
+    Wait OK:HOME"]
+
+    CMD_HOME --> HOME_OK{"OK:HOME?"}
+    HOME_OK -- NO --> ABORT_HOME(["❌ Homing failed — Exit"])
+
+    HOME_OK -- YES --> INIT["State
+    ───────────────────────────
+    layer = 0
+    currentZ = 0 mm
+    posJ1=posJ2=posJ3=posZ=0"]
+
+    INIT --> LAYER_LOOP
+
+    %% ── LAYER LOOP ───────────────────────────────────────────────────────
+    subgraph LAYER_LOOP_SUB ["   🔁  Layer Loop  —  repeats NUM_LAYERS times   "]
+
+        LAYER_LOOP{"layer < NUM_LAYERS?"}
+        LAYER_LOOP -- NO --> FINISH_START
+
+        LAYER_LOOP -- YES --> REHOME_CHK{"layer > 0?"}
+
+        REHOME_CHK -- NO --> BLOCK_LOOP_START
+        REHOME_CHK -- YES --> DO_REHOME
+
+        subgraph REHOME ["   🔁  Z Rehome — start of every layer except layer 0   "]
+            DO_REHOME["currentZ = layer × DUPLO_H
+            zSteps = currentZ × STEPS_PER_MM_Z"]
+            DO_REHOME --> SEND_RH["send_command('REHOME_Z:zSteps')
+            Wait OK:REHOME_Z"]
+            SEND_RH --> RH_OK{"OK:REHOME_Z?"}
+            RH_OK -- NO --> RH_ERR(["❌ Rehome failed — Abort"])
+            RH_OK -- YES --> BLOCK_LOOP_START
+        end
+
+        BLOCK_LOOP_START["Reset block index to 0
+        Iterate over sorted (x,y) pairs"]
+
+        BLOCK_LOOP_START --> BLOCK_LOOP{"Next (x,y)
+        in pairs?"}
+
+        BLOCK_LOOP -- NO --> LAYER_DONE
+        LAYER_DONE["layer++"]
+        LAYER_DONE --> LAYER_LOOP
+
+        BLOCK_LOOP -- YES --> PICK_START
+
+        subgraph PICK ["   🤏  Pick   "]
+            PICK_START["IK(SUPPLY_X, SUPPLY_Y)
+            → j1, j2, j3
+            pickZ = currentZ + CLEARANCE_HEIGHT"]
+            PICK_START --> MV_PICK["send_command('MOVE_ANG:j1,j2,j3,pickZ')
+            Wait OK:MOVE"]
+            MV_PICK --> DO_GRIP["send_command('GRIP?')
+            Wait OK:GRIP"]
+            DO_GRIP --> MV_LIFT["liftZ = currentZ + CLEARANCE_HEIGHT
+            send_command('MOVE_ANG:j1,j2,j3,liftZ')
+            Wait OK:MOVE"]
+        end
+
+        MV_LIFT --> PLACE_START
+
+        subgraph PLACE ["   📦  Place   "]
+            PLACE_START["IK(targetX, targetY)
+            → j1, j2, j3
+            approachZ = currentZ + CLEARANCE_HEIGHT"]
+            PLACE_START --> MV_APPROACH["send_command('MOVE_ANG:j1,j2,j3,approachZ')
+            Wait OK:MOVE"]
+            MV_APPROACH --> MV_LOWER["send_command('MOVE_ANG:j1,j2,j3,currentZ')
+            Wait OK:MOVE"]
+            MV_LOWER --> DO_RELEASE["send_command('RELEASE?')
+            Wait OK:RELEASE"]
+            DO_RELEASE --> MV_RETRACT["send_command('MOVE_ANG:j1,j2,j3,approachZ')
+            Wait OK:MOVE"]
+        end
+
+        MV_RETRACT --> LOG["posJ1 posJ2 posJ3 posZ updated
+        Log: block placed at x,y layer L"]
+
+        LOG --> ERR_CHK{"ERR at
+        any step?"}
+
+        ERR_CHK -- YES --> ERR_HANDLE["Log ERR:CODE
+        Print: Retry? (y/n)"]
+        ERR_HANDLE --> RETRY{"y / n?"}
+        RETRY -- y --> BLOCK_LOOP
+        RETRY -- n --> ABORT(["❌ Aborted · Print log · Exit"])
+
+        ERR_CHK -- NO --> BLOCK_LOOP
+
+    end
+
+    %% ── COMPLETE ─────────────────────────────────────────────────────────
+    subgraph COMPLETE ["   ✅  Build Complete   "]
+        FINISH_START["send_command('MOVE_ANG:0,0,0,0')
+        Wait OK:MOVE"]
+        FINISH_START --> FINAL_HOME["send_command('HOME?')
+        Wait OK:HOME"]
+        FINAL_HOME --> REPORT["Print report
+        Blocks placed · Time · Errors"]
+    end
+
+    REPORT --> END(["🏁 DONE"])
+
+    %% ── IK MODULE ────────────────────────────────────────────────────────
+    subgraph IK_BOX ["   📐  IK(x, y) — called for every MOVE_ANG   "]
+        IK_IN["Input: x mm,  y mm"]
+        IK_IN --> IK_CALC["r = √(x² + y²)
+        cos_j2 = (r² − L1² − L2²) ÷ (2·L1·L2)
+        j2 = atan2(√(1−cos_j2²), cos_j2)
+        j1 = atan2(y,x) − atan2(L2·sin j2, L1+L2·cos j2)
+        j3 = −(j1+j2)  ← wrist straight"]
+        IK_CALC --> IK_LIM{"Within
+        joint limits?"}
+        IK_LIM -- NO  --> IK_ERR(["❌ Unreachable
+        Return error"])
+        IK_LIM -- YES --> IK_OUT["Return j1°  j2°  j3°"]
+    end
+
+    %% ── FLOOR PLAN PARSER ────────────────────────────────────────────────
+    subgraph PARSER ["   📄  load_floor_plan(filename)   "]
+        P_READ["Open floor_plan.txt
+        enumerate rows and tokens"]
+        P_READ --> P_CHK["if int(token) == 1:
+        x = col × DUPLO_W + DUPLO_W/2
+        y = row × DUPLO_W + DUPLO_W/2
+        append (x, y)"]
+        P_CHK --> P_OUT["Return [(x,y), ...]
+        Same list projected to all NUM_LAYERS"]
+    end
