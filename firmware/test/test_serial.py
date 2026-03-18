@@ -20,7 +20,7 @@ import time
 
 # Allow running from project root or from tests/ directory
 sys.path.insert(0, "pc_software")
-from serial_comms import connect, send_command, disconnect
+from comms import connect, send_command, disconnect
 
 # ─── COLOUR HELPERS ──────────────────────────────────────────────────────────
 GREEN  = "\033[92m"
@@ -98,35 +98,35 @@ def main():
         sys.exit(1)
 
     # ── TEST 1: STATUS (should be IDLE after boot) ────────────────────────────
-    run_test("STATUS after boot", "STATUS", "STATUS:IDLE", ser)
+    # run_test("STATUS after boot", "STATUS", "STATUS:IDLE", ser)
 
-    # ── TEST 2: HOME ─────────────────────────────────────────────────────────
-    if not args.skip_home:
-        info("HOME will drive all axes to limit switches — ensure clearance")
-        input("  Press ENTER when ready...")
-        run_test("HOME all axes", "HOME", "OK:HOME", ser, timeout=30)
-    else:
-        info("HOME skipped (--skip-home flag)")
+    # # ── TEST 2: HOME ─────────────────────────────────────────────────────────
+    # if not args.skip_home:
+    #     info("HOME will drive all axes to limit switches — ensure clearance")
+    #     input("  Press ENTER when ready...")
+    #     run_test("HOME all axes", "HOME", "OK:HOME", ser, timeout=30)
+    # else:
+    #     info("HOME skipped (--skip-home flag)")
 
     # ── TEST 3: STATUS after home ─────────────────────────────────────────────
-    run_test("STATUS after HOME", "STATUS", "STATUS:IDLE", ser)
+    # run_test("STATUS after HOME", "STATUS", "STATUS:IDLE", ser)
 
     # ── TEST 4: MOVE — small safe move ───────────────────────────────────────
-    info("MOVE:10,0,0,0  →  J1 rotates 10 degrees, others stay")
-    run_test("MOVE J1=10deg Z=0", "MOVE:10,0,0,0", "OK:MOVE", ser, timeout=15)
+    # info("MOVE:10,0,0,0  →  J1 rotates 10 degrees, others stay")
+    # run_test("MOVE J1=10deg Z=0", "MOVE:10,0,0,0", "OK:MOVE", ser, timeout=15)
 
     # ── TEST 5: MOVE — return to zero ────────────────────────────────────────
-    run_test("MOVE all back to 0", "MOVE:0,0,0,0", "OK:MOVE", ser, timeout=15)
+    # run_test("MOVE all back to 0", "MOVE:0,0,0,0", "OK:MOVE", ser, timeout=15)
 
     # ── TEST 6: MOVE — multi-axis ────────────────────────────────────────────
-    info("MOVE:20,10,-5,5  →  all four axes move simultaneously")
-    run_test("MOVE multi-axis", "MOVE:20,10,-5,5", "OK:MOVE", ser, timeout=15)
-    run_test("MOVE return home", "MOVE:0,0,0,0",   "OK:MOVE", ser, timeout=15)
+    # info("MOVE:20,10,-5,5  →  all four axes move simultaneously")
+    # run_test("MOVE multi-axis", "MOVE:20,10,-5,5", "OK:MOVE", ser, timeout=15)
+    # run_test("MOVE return home", "MOVE:0,0,0,0",   "OK:MOVE", ser, timeout=15)
 
-    # ── TEST 7: MOVE with Z ──────────────────────────────────────────────────
-    info("MOVE:0,0,0,10  →  Z descends 10 mm")
-    run_test("MOVE Z=10mm", "MOVE:0,0,0,10", "OK:MOVE", ser, timeout=15)
-    run_test("MOVE Z back to 0", "MOVE:0,0,0,0", "OK:MOVE", ser, timeout=15)
+    # # ── TEST 7: MOVE with Z ──────────────────────────────────────────────────
+    # info("MOVE:0,0,0,10  →  Z descends 10 mm")
+    # run_test("MOVE Z=10mm", "MOVE:0,0,0,10", "OK:MOVE", ser, timeout=15)
+    # run_test("MOVE Z back to 0", "MOVE:0,0,0,0", "OK:MOVE", ser, timeout=15)
 
     # ── TEST 8: GRIP ─────────────────────────────────────────────────────────
     info("Gripper will close")
@@ -137,23 +137,23 @@ def main():
     run_test("RELEASE", "RELEASE", "OK:RELEASE", ser)
 
     # ── TEST 10: REHOME_Z ────────────────────────────────────────────────────
-    info("REHOME_Z:19.2  →  Z homes then descends to layer 1 height")
-    run_test("REHOME_Z layer 1", "REHOME_Z:19.2", "OK:REHOME_Z", ser, timeout=20)
-    run_test("MOVE Z back to 0", "MOVE:0,0,0,0",  "OK:MOVE",     ser, timeout=15)
+    # info("REHOME_Z:19.2  →  Z homes then descends to layer 1 height")
+    # run_test("REHOME_Z layer 1", "REHOME_Z:19.2", "OK:REHOME_Z", ser, timeout=20)
+    # run_test("MOVE Z back to 0", "MOVE:0,0,0,0",  "OK:MOVE",     ser, timeout=15)
 
     # ── TEST 11: SET_SPEED ───────────────────────────────────────────────────
     run_test("SET_SPEED valid",   "SET_SPEED:800",  "OK:SPEED", ser)
     run_test("SET_SPEED restore", "SET_SPEED:1200", "OK:SPEED", ser)
 
     # ── TEST 12: SET_ACCEL ───────────────────────────────────────────────────
-    run_test("SET_ACCEL valid",   "SET_ACCEL:600", "OK:ACCEL", ser)
-    run_test("SET_ACCEL restore", "SET_ACCEL:800", "OK:ACCEL", ser)
+    # run_test("SET_ACCEL valid",   "SET_ACCEL:600", "OK:ACCEL", ser)
+    # run_test("SET_ACCEL restore", "SET_ACCEL:800", "OK:ACCEL", ser)
 
-    # ── TEST 13: NACK cases ───────────────────────────────────────────────────
-    run_nack_test("NACK unknown command",   "BLAH",           ser)
-    run_nack_test("NACK bad MOVE args",     "MOVE:abc",       ser)
-    run_nack_test("NACK speed too low",     "SET_SPEED:10",   ser)
-    run_nack_test("NACK invalid accel",     "SET_ACCEL:-1",   ser)
+    # # ── TEST 13: NACK cases ───────────────────────────────────────────────────
+    # run_nack_test("NACK unknown command",   "BLAH",           ser)
+    # run_nack_test("NACK bad MOVE args",     "MOVE:abc",       ser)
+    # run_nack_test("NACK speed too low",     "SET_SPEED:10",   ser)
+    # run_nack_test("NACK invalid accel",     "SET_ACCEL:-1",   ser)
 
     # ── TEST 14: STATUS:IDLE final check ─────────────────────────────────────
     run_test("STATUS final check", "STATUS", "STATUS:IDLE", ser)

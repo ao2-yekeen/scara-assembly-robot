@@ -1,5 +1,5 @@
 #include <Arduino.h>
-// Servo library removed — SG90 driven directly via Timer 2 PWM
+// Servo library removed — SG90 driven directly, no timer conflict
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const uint8_t NO_OF_JOINTS = 4;
@@ -13,7 +13,7 @@ const uint8_t DIR_PINS[NO_OF_JOINTS] = {3, 5, 7, 9};
 const uint8_t LIMIT_PINS[NO_OF_JOINTS] = {18, 19, 20, 21};
 
 const uint8_t GRIPPER_PIN = 10;
-const uint8_t SERVO_OPEN_ANGLE = 120;
+const uint8_t SERVO_OPEN_ANGLE = 180;
 const uint8_t SERVO_CLOSE_ANGLE = 60;
 const uint8_t LED_PIN = 13;
 
@@ -24,20 +24,30 @@ const float MIN_SPEED = 80.0f;
 const unsigned long SELFTEST_BLINK_MS = 150;
 
 // ── BRESENHAM TOGGLE ─────────────────────────────────────────────────────────
-// 1 = all axes synchronised via Bresenham (default, smooth coordinated motion)
-// 0 = each axis steps independently at its own rate (useful for single-axis tests)
+// 1 = axes synchronised (smooth coordinated motion)
+// 0 = axes independent (good for testing each axis individually)
 #define USE_BRESENHAM 1
 
-// ─── UNIT CONVERSION ─────────────────────────────────────────────────────────
+// ─── DEMO MODE ───────────────────────────────────────────────────────────────
+// 0 = all four axes back and forth continuously
+// 1 = single axis only — set DEMO_AXIS below
+// 2 = production serial command mode
+#define DEMO_MODE 0
+#define DEMO_AXIS J1_IDX // change to J2_IDX, J3_IDX, or Z_IDX
+#define DEMO_STEPS 1000 // steps per direction
+#define DEMO_PAUSE 300  // ms pause between moves
+
+// 520 steps and 180 degree in steps to degree = 1 revolution = 360 degrees
+// 350 steps and 180 degree in steps to degree = 1 revolution = 180 degrees
+//  ─── UNIT CONVERSION ─────────────────────────────────────────────────────────
 const float STEPS_PER_REV = 200.0f;
-const float STEPS_PER_DEG = STEPS_PER_REV / 360.0f; // 0.5556 steps/deg
+const float STEPS_PER_DEG = STEPS_PER_REV / 360.0f;
 const float STEPS_PER_MM_Z = 25.0f;
 
 inline long degToSteps(float deg) { return (long)(deg * STEPS_PER_DEG); }
 inline long mmToSteps(float mm) { return (long)(mm * STEPS_PER_MM_Z); }
 
 // ─── GLOBALS ─────────────────────────────────────────────────────────────────
-// No Servo object needed
 char rxBuf[64];
 uint8_t rxIdx = 0;
 long jointPos[NO_OF_JOINTS] = {0, 0, 0, 0};
@@ -69,7 +79,6 @@ void LIMIT_ISR_1() { limitHit[1] = true; }
 void LIMIT_ISR_2() { limitHit[2] = true; }
 void LIMIT_ISR_3() { limitHit[3] = true; }
 
-// Pins 18,19,20,21 → INT5,INT4,INT3,INT2 on Mega
 const uint8_t INT_NUMS[NO_OF_JOINTS] = {5, 4, 3, 2};
 void (*const LIMIT_ISRS[NO_OF_JOINTS])() = {
     LIMIT_ISR_0, LIMIT_ISR_1, LIMIT_ISR_2, LIMIT_ISR_3};
@@ -90,23 +99,19 @@ void setupTimer5();
 void stopTimer5();
 
 // ─── SERIAL PROTOCOL ─────────────────────────────────────────────────────────
-//
-//  Command              Response
-//  ──────────────────────────────────────────────────────────
-//  HOME                 OK:HOME
-//  MOVE:j1,j2,j3,z_mm  OK:MOVE
-//  GRIP                 OK:GRIP
-//  RELEASE              OK:RELEASE
-//  REHOME_Z:z_mm        OK:REHOME_Z
-//  SET_SPEED:v          OK:SPEED
-//  SET_ACCEL:a          OK:ACCEL
-//  STATUS               STATUS:IDLE  |  STATUS:RUNNING
-//  (boot complete)      READY
-//
-//  Errors  →  ERR:<CODE>:<DETAIL>
-//  Bad cmd →  NACK:<REASON>
+//  HOME                 → OK:HOME
+//  MOVE:j1,j2,j3,z_mm  → OK:MOVE
+//  GRIP                 → OK:GRIP
+//  RELEASE              → OK:RELEASE
+//  REHOME_Z:z_mm        → OK:REHOME_Z
+//  SET_SPEED:v          → OK:SPEED
+//  SET_ACCEL:a          → OK:ACCEL
+//  STATUS               → STATUS:IDLE | STATUS:RUNNING
+//  (boot)               → READY
+//  Errors  → ERR:<CODE>:<DETAIL>
+//  Bad cmd → NACK:<REASON>
 
-// ─── TIMER 3 ISR ─────────────────────────────────────────────────────────────
+// ─── TIMER 5 ISR ─────────────────────────────────────────────────────────────
 ISR(TIMER5_COMPA_vect)
 {
   if (!motionRunning)
@@ -175,7 +180,7 @@ ISR(TIMER5_COMPA_vect)
   }
 }
 
-// ─── TIMER 3 ─────────────────────────────────────────────────────────────────
+// ─── TIMER 5 ─────────────────────────────────────────────────────────────────
 void setupTimer5()
 {
   TCCR5A = 0;
@@ -273,6 +278,22 @@ void stuck_switch_detection_onboot()
   }
 }
 
+
+void test_limit_switches()
+{
+  for (uint8_t j = 0; j < NO_OF_JOINTS; ++j)
+  {
+    Serial.print("Testing limit switch for joint ");
+    Serial.println(j + 1);
+    Serial.println("Please trigger the switch now...");
+    while (!limitTriggered(LIMIT_PINS[j]))
+    {
+      // Wait for the user to trigger the switch
+    }
+    Serial.println("Switch triggered successfully!");
+  }
+}
+
 // ─── HOMING ──────────────────────────────────────────────────────────────────
 bool homeJoint(uint8_t j)
 {
@@ -333,24 +354,16 @@ void rehomeZ(long layerZsteps)
   }
 }
 
-// ─── GRIPPER — SG90 driven directly, no Servo library ───────────────────────
-// SG90 PWM: 50 Hz period (20 ms). Pulse width:
-//   ~0.5 ms = 0°,  ~1.5 ms = 90°,  ~2.5 ms = 180°
-// Timer 2 is 8-bit. We use analogWrite() on pin 10 (OC2B on Mega) for 50 Hz.
-// Simpler: bit-bang a single pulse via delayMicroseconds — servo only moves
-// on command, does not need continuous PWM once it has reached position.
-
+// ─── GRIPPER ─────────────────────────────────────────────────────────────────
 void servoWriteAngle(uint8_t angle)
 {
-  // Convert angle (0–180) to pulse width in microseconds
   uint16_t pulseUs = 500 + (uint16_t)((uint32_t)angle * 2000 / 180);
-  // Send 30 pulses at 50 Hz so servo has time to reach position
   for (uint8_t i = 0; i < 30; i++)
   {
     digitalWrite(GRIPPER_PIN, HIGH);
     delayMicroseconds(pulseUs);
     digitalWrite(GRIPPER_PIN, LOW);
-    delayMicroseconds(20000 - pulseUs); // remainder of 20 ms period
+    delayMicroseconds(20000 - pulseUs);
   }
 }
 
@@ -425,13 +438,11 @@ void handleCommand(const char *cmd)
 
   case CMD_GRIP:
     gripperClose();
-    delay(300);
     Serial.println("OK:GRIP");
     break;
 
   case CMD_RELEASE:
     gripperOpen();
-    delay(200);
     Serial.println("OK:RELEASE");
     break;
 
@@ -457,9 +468,7 @@ void handleCommand(const char *cmd)
       Serial.println("OK:SPEED");
     }
     else
-    {
       Serial.println("NACK:SPEED_TOO_LOW");
-    }
   }
   break;
 
@@ -472,9 +481,7 @@ void handleCommand(const char *cmd)
       Serial.println("OK:ACCEL");
     }
     else
-    {
       Serial.println("NACK:ACCEL_INVALID");
-    }
   }
   break;
 
@@ -509,14 +516,50 @@ void setup()
   servoInit();
   gripperOpen();
 
-  stuck_switch_detection_onboot();
-  homeAll();
+#if DEMO_MODE == 2
+  //stuck_switch_detection_onboot();
+  //homeAll();
+#endif
+
   Serial.println("READY");
 }
 
 // ─── MAIN LOOP ───────────────────────────────────────────────────────────────
 void loop()
 {
+
+#if DEMO_MODE == 0
+  // ── All four axes back and forth continuously ─────────────────────────────
+  //startMove(DEMO_STEPS, DEMO_STEPS, DEMO_STEPS, DEMO_STEPS);
+ startMove(degToSteps(90), degToSteps(90),
+             degToSteps(90), degToSteps(90));
+
+  waitForMove();
+  delay(DEMO_PAUSE);
+
+  startMove(0, 0, 0, 0);
+  waitForMove();
+  delay(DEMO_PAUSE);
+
+  gripperClose();
+  delay(DEMO_PAUSE);
+   gripperOpen();
+
+#elif DEMO_MODE == 1
+  // ── Single axis — only DEMO_AXIS moves, all others stay at 0 ─────────────
+  long fwd[NO_OF_JOINTS] = {0, 0, 0, 0};
+  fwd[DEMO_AXIS] = degToSteps(180); // or mmToSteps(50) for Z axis
+
+  startMove(fwd[0], fwd[1], fwd[2], fwd[3]);
+  waitForMove();
+  delay(DEMO_PAUSE);
+
+  startMove(0, 0, 0, 0);
+  waitForMove();
+  delay(DEMO_PAUSE);
+
+#else
+  // ── Production: serial command mode ──────────────────────────────────────
   while (Serial.available())
   {
     char c = Serial.read();
@@ -532,4 +575,5 @@ void loop()
       rxBuf[rxIdx++] = c;
     }
   }
+#endif
 }
