@@ -1,3 +1,4 @@
 firmware/.vscode/extensions.json
 firmware/src/lego-builder.code-workspace
-venv/*
+firmware/venv/*
+
