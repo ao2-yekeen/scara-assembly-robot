@@ -1,4 +1,4 @@
 firmware/.vscode/extensions.json
 firmware/src/lego-builder.code-workspace
 firmware/venv/*
-
+firmware/test/__pycache__/*
