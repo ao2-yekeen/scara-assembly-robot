@@ -6,28 +6,28 @@ const uint8_t NO_OF_JOINTS = 4;
 const uint8_t J1_IDX = 0;
 const uint8_t J2_IDX = 1;
 const uint8_t J3_IDX = 2;
-const uint8_t Z_IDX  = 3;
+const uint8_t Z_IDX = 3;
 
-const uint8_t STEP_PINS[NO_OF_JOINTS]  = {2, 4, 6, 8};
-const uint8_t DIR_PINS[NO_OF_JOINTS]   = {3, 5, 7, 9};
+const uint8_t STEP_PINS[NO_OF_JOINTS] = {2, 4, 6, 8};
+const uint8_t DIR_PINS[NO_OF_JOINTS] = {3, 5, 7, 9};
 const uint8_t LIMIT_PINS[NO_OF_JOINTS] = {18, 19, 20, 21};
 
-const uint8_t GRIPPER_PIN       = 10;
-const uint8_t SERVO_OPEN_ANGLE  = 180;
+const uint8_t GRIPPER_PIN = 10;
+const uint8_t SERVO_OPEN_ANGLE = 180;
 const uint8_t SERVO_CLOSE_ANGLE = 60;
-const uint8_t LED_PIN           = 13;
+const uint8_t LED_PIN = 13;
 
-const unsigned long HOME_SPEED_US     = 900;
-const float DEFAULT_MAX_SPEED        = 1200.0f;
-const float DEFAULT_ACCEL            = 400.0f;
-const float MIN_SPEED                = 80.0f;
+const unsigned long HOME_SPEED_US = 900;
+const float DEFAULT_MAX_SPEED = 1200.0f;
+const float DEFAULT_ACCEL = 400.0f;
+const float MIN_SPEED = 80.0f;
 const unsigned long SELFTEST_BLINK_MS = 150;
 
 // ─── JOINT LIMITS ─────────────────────────────────────────────────────────────
 const float JOINT_MIN_DEG = -160.0f;
-const float JOINT_MAX_DEG =  160.0f;
-const float Z_MIN_MM      =    0.0f;
-const float Z_MAX_MM      =  250.0f;
+const float JOINT_MAX_DEG = 160.0f;
+const float Z_MIN_MM = 0.0f;
+const float Z_MAX_MM = 250.0f;
 
 // ── BRESENHAM TOGGLE ─────────────────────────────────────────────────────────
 #define USE_BRESENHAM 1
@@ -44,24 +44,24 @@ const float STEPS_PER_DEG_ARR[NO_OF_JOINTS] = {
     STEPS_PER_REV_J1 / 360.0f,
     STEPS_PER_REV_J2 / 360.0f,
     STEPS_PER_REV_J3 / 360.0f,
-    0.0f
-};
+    0.0f};
 const float STEPS_PER_MM_Z = 25.0f;
 const uint8_t Z_HOME_DIR = LOW;
-const uint8_t Z_UP_DIR   = HIGH;
+const uint8_t Z_UP_DIR = HIGH;
 
 inline long degToSteps(float deg, uint8_t joint) { return (long)(deg * STEPS_PER_DEG_ARR[joint]); }
-inline long mmToSteps(float mm)                  { return (long)(mm  * STEPS_PER_MM_Z); }
+inline long mmToSteps(float mm) { return (long)(mm * STEPS_PER_MM_Z); }
 
 // ─── GLOBALS ─────────────────────────────────────────────────────────────────
 char rxBuf[64];
 uint8_t rxIdx = 0;
 long jointPos[NO_OF_JOINTS] = {0, 0, 0, 0};
 float maxSpeed = DEFAULT_MAX_SPEED;
-float accel    = DEFAULT_ACCEL;
+float accel = DEFAULT_ACCEL;
 
 // ─── ISR MOTION STATE ────────────────────────────────────────────────────────
-struct AxisState {
+struct AxisState
+{
     volatile long stepsRemaining;
     volatile long accumulator;
     volatile long delta;
@@ -69,12 +69,12 @@ struct AxisState {
 };
 
 volatile AxisState axes[NO_OF_JOINTS];
-volatile uint16_t masterSteps   = 0;
-volatile uint16_t stepsDone     = 0;
-volatile float    currentSpeed  = MIN_SPEED;
-volatile bool     motionRunning = false;
-volatile uint16_t rampSteps     = 0;
-volatile uint16_t decelStart    = 0;
+volatile uint16_t masterSteps = 0;
+volatile uint16_t stepsDone = 0;
+volatile float currentSpeed = MIN_SPEED;
+volatile bool motionRunning = false;
+volatile uint16_t rampSteps = 0;
+volatile uint16_t decelStart = 0;
 
 // ─── HOMING INTERRUPT FLAGS ──────────────────────────────────────────────────
 volatile bool limitHit[NO_OF_JOINTS] = {false, false, false, false};
@@ -84,7 +84,7 @@ void LIMIT_ISR_1() { limitHit[1] = true; }
 void LIMIT_ISR_2() { limitHit[2] = true; }
 void LIMIT_ISR_3() { limitHit[3] = true; }
 
-const uint8_t INT_NUMS[NO_OF_JOINTS]     = {5, 4, 3, 2};
+const uint8_t INT_NUMS[NO_OF_JOINTS] = {5, 4, 3, 2};
 void (*const LIMIT_ISRS[NO_OF_JOINTS])() = {LIMIT_ISR_0, LIMIT_ISR_1, LIMIT_ISR_2, LIMIT_ISR_3};
 
 // ─── PROTOTYPES ──────────────────────────────────────────────────────────────
@@ -121,7 +121,8 @@ bool validateMoveArgs(float j1_deg, float j2_deg, float j3_deg, float z_mm);
 // Z is NOT driven from here — it uses a separate blocking loop (moveZ).
 ISR(TIMER5_COMPA_vect)
 {
-    if (!motionRunning) return;
+    if (!motionRunning)
+        return;
 
     long i = (long)stepsDone;
     float v;
@@ -129,13 +130,15 @@ ISR(TIMER5_COMPA_vect)
     if (i < rampSteps)
     {
         v = sqrtf(MIN_SPEED * MIN_SPEED + 2.0f * accel * (float)(i + 1));
-        if (v > maxSpeed) v = maxSpeed;
+        if (v > maxSpeed)
+            v = maxSpeed;
     }
     else if (i >= decelStart)
     {
         long left = masterSteps - i;
         v = sqrtf(MIN_SPEED * MIN_SPEED + 2.0f * accel * (float)left);
-        if (v > maxSpeed) v = maxSpeed;
+        if (v > maxSpeed)
+            v = maxSpeed;
     }
     else
     {
@@ -144,13 +147,15 @@ ISR(TIMER5_COMPA_vect)
     currentSpeed = v;
 
     uint16_t ticks = (uint16_t)(2000000.0f / v);
-    if (ticks < 200) ticks = 200;
+    if (ticks < 200)
+        ticks = 200;
     OCR5A = ticks;
 
 #if USE_BRESENHAM
     for (uint8_t j = 0; j < NO_OF_JOINTS; j++)
     {
-        if (!axes[j].active) continue;
+        if (!axes[j].active)
+            continue;
         axes[j].accumulator += axes[j].delta;
         if (axes[j].accumulator >= masterSteps)
         {
@@ -162,7 +167,10 @@ ISR(TIMER5_COMPA_vect)
 #else
     for (uint8_t j = 0; j < NO_OF_JOINTS; j++)
         if (axes[j].active && axes[j].stepsRemaining > 0)
-        { digitalWrite(STEP_PINS[j], HIGH); axes[j].stepsRemaining--; }
+        {
+            digitalWrite(STEP_PINS[j], HIGH);
+            axes[j].stepsRemaining--;
+        }
 #endif
 
     delayMicroseconds(2);
@@ -170,56 +178,69 @@ ISR(TIMER5_COMPA_vect)
         digitalWrite(STEP_PINS[j], LOW);
 
     stepsDone++;
-    if (stepsDone >= masterSteps) { motionRunning = false; stopTimer5(); }
+    if (stepsDone >= masterSteps)
+    {
+        motionRunning = false;
+        stopTimer5();
+    }
 }
 
 // ─── TIMER 5 ─────────────────────────────────────────────────────────────────
 void setupTimer5()
 {
-    TCCR5A = 0; TCCR5B = 0; TCNT5 = 0;
+    TCCR5A = 0;
+    TCCR5B = 0;
+    TCNT5 = 0;
     TCCR5B |= (1 << WGM12) | (1 << CS11);
-    OCR5A   = (uint16_t)(2000000.0f / MIN_SPEED);
+    OCR5A = (uint16_t)(2000000.0f / MIN_SPEED);
     TIMSK5 |= (1 << OCIE5A);
-    sei();  // guarantee global interrupts enabled — ISR cannot fire without this
+    sei(); // guarantee global interrupts enabled — ISR cannot fire without this
 }
 
-void stopTimer5() { TIMSK5 &= ~(1 << OCIE5A); TCCR5B = 0; }
+void stopTimer5()
+{
+    TIMSK5 &= ~(1 << OCIE5A);
+    TCCR5B = 0;
+}
 
 // ─── ROTATIONAL JOINTS MOVE (Timer5 ISR) ─────────────────────────────────────
-// Original startMove logic, restricted to J1/J2/J3 only.
 void startMoveJoints(long tJ1, long tJ2, long tJ3)
 {
     long d[NO_OF_JOINTS];
     d[J1_IDX] = labs(tJ1 - jointPos[J1_IDX]);
     d[J2_IDX] = labs(tJ2 - jointPos[J2_IDX]);
     d[J3_IDX] = labs(tJ3 - jointPos[J3_IDX]);
-    d[Z_IDX]  = 0;  // Z never driven from ISR
+    d[Z_IDX] = 0; // Z never driven from ISR
 
     masterSteps = (uint16_t)max(max(d[J1_IDX], d[J2_IDX]), d[J3_IDX]);
-    if (masterSteps == 0) return;
+    if (masterSteps == 0)
+        return;
 
     digitalWrite(DIR_PINS[J1_IDX], (tJ1 >= jointPos[J1_IDX]) ? HIGH : LOW);
     digitalWrite(DIR_PINS[J2_IDX], (tJ2 >= jointPos[J2_IDX]) ? HIGH : LOW);
     digitalWrite(DIR_PINS[J3_IDX], (tJ3 >= jointPos[J3_IDX]) ? HIGH : LOW);
 
-    delayMicroseconds(10);  // DIR setup time
+    delayMicroseconds(10); // DIR setup time
 
     long ramp = (long)((maxSpeed * maxSpeed - MIN_SPEED * MIN_SPEED) / (2.0f * accel));
-    if (ramp > (long)masterSteps / 2) ramp = (long)masterSteps / 2;
-    if (ramp < 1) ramp = 1;
-    rampSteps  = (uint16_t)ramp;
+    if (ramp > (long)masterSteps / 2)
+        ramp = (long)masterSteps / 2;
+    if (ramp < 1)
+        ramp = 1;
+    rampSteps = (uint16_t)ramp;
     decelStart = (uint16_t)((long)masterSteps - ramp);
-    if (decelStart < rampSteps) decelStart = rampSteps;
+    if (decelStart < rampSteps)
+        decelStart = rampSteps;
 
     for (uint8_t j = 0; j < NO_OF_JOINTS; j++)
     {
-        axes[j].delta          = d[j];
+        axes[j].delta = d[j];
         axes[j].stepsRemaining = d[j];
-        axes[j].accumulator    = 0;
-        axes[j].active         = (d[j] > 0);
+        axes[j].accumulator = 0;
+        axes[j].active = (d[j] > 0);
     }
 
-    stepsDone    = 0;
+    stepsDone = 0;
     currentSpeed = MIN_SPEED;
     motionRunning = true;
 
@@ -228,9 +249,12 @@ void startMoveJoints(long tJ1, long tJ2, long tJ3)
     jointPos[J3_IDX] = tJ3;
 
     // Debug — remove once motion is confirmed working
-    Serial.print("DBG masterSteps="); Serial.print(masterSteps);
-    Serial.print(" rampSteps="); Serial.print(rampSteps);
-    Serial.print(" decelStart="); Serial.println(decelStart);
+    // Serial.print("DBG masterSteps=");
+    // Serial.print(masterSteps);
+    // Serial.print(" rampSteps=");
+    // Serial.print(rampSteps);
+    // Serial.print(" decelStart=");
+    // Serial.println(decelStart);
 
     setupTimer5();
 }
@@ -240,10 +264,11 @@ void startMoveJoints(long tJ1, long tJ2, long tJ3)
 void moveZ(long tZ)
 {
     long steps = labs(tZ - jointPos[Z_IDX]);
-    if (steps == 0) return;
+    if (steps == 0)
+        return;
 
     digitalWrite(DIR_PINS[Z_IDX], (tZ >= jointPos[Z_IDX]) ? Z_UP_DIR : Z_HOME_DIR);
-    delayMicroseconds(10);  // DIR setup time
+    delayMicroseconds(10); // DIR setup time
 
     for (long s = 0; s < steps; s++)
     {
@@ -268,12 +293,21 @@ void startMove(long tJ1, long tJ2, long tJ3, long tZ)
     moveZ(tZ);
 }
 
-void waitForMove() { while (motionRunning) {} }
+void waitForMove()
+{
+    while (motionRunning)
+    {
+    }
+}
 
 // ─── LIMIT SWITCH ────────────────────────────────────────────────────────────
 bool limitTriggered(uint8_t pin)
 {
-    if (digitalRead(pin) == HIGH) { delayMicroseconds(3000); return (digitalRead(pin) == HIGH); }
+    if (digitalRead(pin) == HIGH)
+    {
+        delayMicroseconds(3000);
+        return (digitalRead(pin) == HIGH);
+    }
     return false;
 }
 
@@ -284,8 +318,15 @@ void stuck_switch_detection_onboot()
     {
         if (limitTriggered(LIMIT_PINS[i]))
         {
-            Serial.print("ERR:SELFTEST:SWITCH_STUCK:J"); Serial.println(i + 1);
-            while (true) { digitalWrite(LED_PIN, HIGH); delay(SELFTEST_BLINK_MS); digitalWrite(LED_PIN, LOW); delay(SELFTEST_BLINK_MS); }
+            Serial.print("ERR:SELFTEST:SWITCH_STUCK:J");
+            Serial.println(i + 1);
+            while (true)
+            {
+                digitalWrite(LED_PIN, HIGH);
+                delay(SELFTEST_BLINK_MS);
+                digitalWrite(LED_PIN, LOW);
+                delay(SELFTEST_BLINK_MS);
+            }
         }
     }
 }
@@ -298,46 +339,57 @@ bool homeJoint(uint8_t j)
     delayMicroseconds(10);
 
     unsigned long start = millis();
-    const unsigned long timeout       = 6000;
+    const unsigned long timeout = 6000;
     const unsigned long RAMP_START_US = 3000;
-    const int RAMP_STEPS              = 40;
+    const int RAMP_STEPS = 40;
     int stepCount = 0;
 
     while (true)
     {
-        if (limitTriggered(LIMIT_PINS[j])) { limitHit[j] = true; break; }
+        if (limitTriggered(LIMIT_PINS[j]))
+        {
+            limitHit[j] = true;
+            break;
+        }
 
         unsigned long stepUs = HOME_SPEED_US;
         if (stepCount < RAMP_STEPS)
             stepUs = RAMP_START_US - ((RAMP_START_US - HOME_SPEED_US) * stepCount / RAMP_STEPS);
 
-        digitalWrite(STEP_PINS[j], HIGH); delayMicroseconds(stepUs);
-        digitalWrite(STEP_PINS[j], LOW);  delayMicroseconds(stepUs);
+        digitalWrite(STEP_PINS[j], HIGH);
+        delayMicroseconds(stepUs);
+        digitalWrite(STEP_PINS[j], LOW);
+        delayMicroseconds(stepUs);
         stepCount++;
 
         if (millis() - start > timeout)
         {
-            Serial.print("ERR:HOMING:TIMEOUT:J"); Serial.println(j + 1);
+            Serial.print("ERR:HOMING:TIMEOUT:J");
+            Serial.println(j + 1);
             return false;
         }
     }
 
     jointPos[j] = 0;
-    Serial.print("HOMED: Joint "); Serial.println(j + 1);
+    Serial.print("HOMED: Joint ");
+    Serial.println(j + 1);
     return true;
 }
 
 void homeAll()
 {
     for (uint8_t j = 0; j < NO_OF_JOINTS; ++j)
-        if (!homeJoint(j)) return;
+        if (!homeJoint(j))
+            return;
 }
 
 // ─── Z REHOME ────────────────────────────────────────────────────────────────
 void rehomeZ(long layerZsteps)
 {
-    if (!homeJoint(Z_IDX)) return;
-    if (layerZsteps > 0) moveZ(layerZsteps);
+    if (!homeJoint(Z_IDX))
+        return;
+    if (layerZsteps > 0)
+        moveZ(layerZsteps);
 }
 
 // ─── GRIPPER ─────────────────────────────────────────────────────────────────
@@ -346,33 +398,52 @@ void servoWriteAngle(uint8_t angle)
     uint16_t pulseUs = 500 + (uint16_t)((uint32_t)angle * 2000 / 180);
     for (uint8_t i = 0; i < 30; i++)
     {
-        digitalWrite(GRIPPER_PIN, HIGH); delayMicroseconds(pulseUs);
-        digitalWrite(GRIPPER_PIN, LOW);  delayMicroseconds(20000 - pulseUs);
+        digitalWrite(GRIPPER_PIN, HIGH);
+        delayMicroseconds(pulseUs);
+        digitalWrite(GRIPPER_PIN, LOW);
+        delayMicroseconds(20000 - pulseUs);
     }
 }
 
-void servoInit() { pinMode(GRIPPER_PIN, OUTPUT); digitalWrite(GRIPPER_PIN, LOW); }
-void gripperOpen()  { servoWriteAngle(SERVO_OPEN_ANGLE);  }
+void servoInit()
+{
+    pinMode(GRIPPER_PIN, OUTPUT);
+    digitalWrite(GRIPPER_PIN, LOW);
+}
+void gripperOpen() { servoWriteAngle(SERVO_OPEN_ANGLE); }
 void gripperClose() { servoWriteAngle(SERVO_CLOSE_ANGLE); }
 
 // ─── INPUT VALIDATION ────────────────────────────────────────────────────────
 bool validateMoveArgs(float j1_deg, float j2_deg, float j3_deg, float z_mm)
 {
-    struct { float val; const char *name; float lo; float hi; const char *unit; } checks[] = {
+    struct
+    {
+        float val;
+        const char *name;
+        float lo;
+        float hi;
+        const char *unit;
+    } checks[] = {
         {j1_deg, "J1", JOINT_MIN_DEG, JOINT_MAX_DEG, "deg"},
         {j2_deg, "J2", JOINT_MIN_DEG, JOINT_MAX_DEG, "deg"},
         {j3_deg, "J3", JOINT_MIN_DEG, JOINT_MAX_DEG, "deg"},
-        {z_mm,   "Z",  Z_MIN_MM,      Z_MAX_MM,      "mm" },
+        {z_mm, "Z", Z_MIN_MM, Z_MAX_MM, "mm"},
     };
     for (uint8_t i = 0; i < 4; i++)
     {
         if (checks[i].val < checks[i].lo || checks[i].val > checks[i].hi)
         {
-            Serial.print("ERR:LIMIT:"); Serial.print(checks[i].name);
-            Serial.print("_OUT_OF_RANGE:"); Serial.print(checks[i].val, 1);
-            Serial.print(" (allowed "); Serial.print(checks[i].lo, 0);
-            Serial.print(" to "); Serial.print(checks[i].hi, 0);
-            Serial.print(" "); Serial.print(checks[i].unit); Serial.println(")");
+            Serial.print("ERR:LIMIT:");
+            Serial.print(checks[i].name);
+            Serial.print("_OUT_OF_RANGE:");
+            Serial.print(checks[i].val, 1);
+            Serial.print(" (allowed ");
+            Serial.print(checks[i].lo, 0);
+            Serial.print(" to ");
+            Serial.print(checks[i].hi, 0);
+            Serial.print(" ");
+            Serial.print(checks[i].unit);
+            Serial.println(")");
             return false;
         }
     }
@@ -380,19 +451,37 @@ bool validateMoveArgs(float j1_deg, float j2_deg, float j3_deg, float z_mm)
 }
 
 // ─── COMMAND PARSING ─────────────────────────────────────────────────────────
-enum CommandType { CMD_MOVE, CMD_GRIP, CMD_RELEASE, CMD_REHOME_Z, CMD_HOME_ALL,
-                   CMD_SET_SPEED, CMD_SET_ACCEL, CMD_STATUS, CMD_UNKNOWN };
+enum CommandType
+{
+    CMD_MOVE,
+    CMD_GRIP,
+    CMD_RELEASE,
+    CMD_REHOME_Z,
+    CMD_HOME_ALL,
+    CMD_SET_SPEED,
+    CMD_SET_ACCEL,
+    CMD_STATUS,
+    CMD_UNKNOWN
+};
 
 CommandType parseCommand(const char *cmd)
 {
-    if (strncmp(cmd, "MOVE:", 5) == 0)       return CMD_MOVE;
-    if (strcmp(cmd, "GRIP") == 0)            return CMD_GRIP;
-    if (strcmp(cmd, "RELEASE") == 0)         return CMD_RELEASE;
-    if (strncmp(cmd, "REHOME_Z:", 9) == 0)   return CMD_REHOME_Z;
-    if (strcmp(cmd, "HOME") == 0)            return CMD_HOME_ALL;
-    if (strncmp(cmd, "SET_SPEED:", 10) == 0) return CMD_SET_SPEED;
-    if (strncmp(cmd, "SET_ACCEL:", 10) == 0) return CMD_SET_ACCEL;
-    if (strcmp(cmd, "STATUS") == 0)          return CMD_STATUS;
+    if (strncmp(cmd, "MOVE:", 5) == 0)
+        return CMD_MOVE;
+    if (strcmp(cmd, "GRIP") == 0)
+        return CMD_GRIP;
+    if (strcmp(cmd, "RELEASE") == 0)
+        return CMD_RELEASE;
+    if (strncmp(cmd, "REHOME_Z:", 9) == 0)
+        return CMD_REHOME_Z;
+    if (strcmp(cmd, "HOME") == 0)
+        return CMD_HOME_ALL;
+    if (strncmp(cmd, "SET_SPEED:", 10) == 0)
+        return CMD_SET_SPEED;
+    if (strncmp(cmd, "SET_ACCEL:", 10) == 0)
+        return CMD_SET_ACCEL;
+    if (strcmp(cmd, "STATUS") == 0)
+        return CMD_STATUS;
     return CMD_UNKNOWN;
 }
 
@@ -408,26 +497,40 @@ void handleCommand(const char *cmd)
         float j1, j2, j3, z;
         if (sscanf(cmd + 5, "%f,%f,%f,%f", &j1, &j2, &j3, &z) == 4)
         {
-            if (!validateMoveArgs(j1, j2, j3, z)) break;
+            if (!validateMoveArgs(j1, j2, j3, z))
+                break;
             startMove(degToSteps(j1, J1_IDX), degToSteps(j2, J2_IDX),
                       degToSteps(j3, J3_IDX), mmToSteps(z));
             Serial.println("OK:MOVE");
         }
-        else { Serial.println("NACK:BAD_ARGS:MOVE"); }
+        else
+        {
+            Serial.println("NACK:BAD_ARGS:MOVE");
+        }
     }
     break;
 
-    case CMD_GRIP:    gripperClose(); Serial.println("OK:GRIP");    break;
-    case CMD_RELEASE: gripperOpen();  Serial.println("OK:RELEASE"); break;
+    case CMD_GRIP:
+        gripperClose();
+        Serial.println("OK:GRIP");
+        break;
+    case CMD_RELEASE:
+        gripperOpen();
+        Serial.println("OK:RELEASE");
+        break;
 
     case CMD_REHOME_Z:
     {
         float z_mm = atof(cmd + 9);
         if (z_mm < Z_MIN_MM || z_mm > Z_MAX_MM)
         {
-            Serial.print("ERR:LIMIT:REHOME_Z_OUT_OF_RANGE:"); Serial.print(z_mm, 1);
-            Serial.print(" (allowed "); Serial.print(Z_MIN_MM, 0);
-            Serial.print(" to "); Serial.print(Z_MAX_MM, 0); Serial.println(" mm)");
+            Serial.print("ERR:LIMIT:REHOME_Z_OUT_OF_RANGE:");
+            Serial.print(z_mm, 1);
+            Serial.print(" (allowed ");
+            Serial.print(Z_MIN_MM, 0);
+            Serial.print(" to ");
+            Serial.print(Z_MAX_MM, 0);
+            Serial.println(" mm)");
             break;
         }
         rehomeZ(mmToSteps(z_mm));
@@ -435,21 +538,34 @@ void handleCommand(const char *cmd)
     }
     break;
 
-    case CMD_HOME_ALL: homeAll(); Serial.println("OK:HOME"); break;
+    case CMD_HOME_ALL:
+        homeAll();
+        Serial.println("OK:HOME");
+        break;
 
     case CMD_SET_SPEED:
     {
         float v = atof(cmd + 10);
-        if (v > MIN_SPEED) { maxSpeed = v; Serial.println("OK:SPEED"); }
-        else                 Serial.println("NACK:SPEED_TOO_LOW");
+        if (v > MIN_SPEED)
+        {
+            maxSpeed = v;
+            Serial.println("OK:SPEED");
+        }
+        else
+            Serial.println("NACK:SPEED_TOO_LOW");
     }
     break;
 
     case CMD_SET_ACCEL:
     {
         float a = atof(cmd + 10);
-        if (a > 0) { accel = a; Serial.println("OK:ACCEL"); }
-        else         Serial.println("NACK:ACCEL_INVALID");
+        if (a > 0)
+        {
+            accel = a;
+            Serial.println("OK:ACCEL");
+        }
+        else
+            Serial.println("NACK:ACCEL_INVALID");
     }
     break;
 
@@ -458,7 +574,8 @@ void handleCommand(const char *cmd)
         break;
 
     default:
-        Serial.print("NACK:UNKNOWN:"); Serial.println(cmd);
+        Serial.print("NACK:UNKNOWN:");
+        Serial.println(cmd);
         break;
     }
 
@@ -472,17 +589,19 @@ void setup()
 
     for (uint8_t i = 0; i < NO_OF_JOINTS; ++i)
     {
-        pinMode(STEP_PINS[i], OUTPUT); digitalWrite(STEP_PINS[i], LOW);
-        pinMode(DIR_PINS[i], OUTPUT);  digitalWrite(DIR_PINS[i], LOW);
+        pinMode(STEP_PINS[i], OUTPUT);
+        digitalWrite(STEP_PINS[i], LOW);
+        pinMode(DIR_PINS[i], OUTPUT);
+        digitalWrite(DIR_PINS[i], LOW);
         pinMode(LIMIT_PINS[i], INPUT_PULLUP);
     }
     pinMode(LED_PIN, OUTPUT);
 
-  //homeJoint(J1_IDX);
-homeJoint(Z_IDX);
+    // homeJoint(J1_IDX);
+    homeJoint(Z_IDX);
     // ── Test moves — uncomment one at a time ─────────────────────────────────
-  // startMoveJoints(degToSteps(180.0f, J1_IDX), 0, 0);  // J1 only, 90 deg
-  startMove(0,0,0,mmToSteps(100));
+    // startMoveJoints(degToSteps(180.0f, J1_IDX), 0, 0);  // J1 only, 90 deg
+    startMove(0, 0, 0, mmToSteps(100));
     waitForMove();
 
     Serial.println("READY");
@@ -494,13 +613,16 @@ void loop()
 #if DEMO_MODE == 0
     startMove(degToSteps(90, J1_IDX), degToSteps(90, J2_IDX),
               degToSteps(90, J3_IDX), mmToSteps(90));
-    waitForMove(); delay(DEMO_PAUSE);
+    waitForMove();
+    delay(DEMO_PAUSE);
     startMove(0, 0, 0, 0);
-    waitForMove(); delay(DEMO_PAUSE);
-    gripperClose(); delay(DEMO_PAUSE); gripperOpen();
+    waitForMove();
+    delay(DEMO_PAUSE);
+    gripperClose();
+    delay(DEMO_PAUSE);
+    gripperOpen();
 
 #elif DEMO_MODE == 1
-    // Uncomment to test:
     // startMoveJoints(degToSteps(90, J1_IDX), 0, 0); waitForMove(); delay(DEMO_PAUSE);
     // startMoveJoints(0, 0, 0);                       waitForMove(); delay(DEMO_PAUSE);
 
@@ -510,733 +632,15 @@ void loop()
         char c = Serial.read();
         if (c == '\n' || rxIdx >= 62)
         {
-            rxBuf[rxIdx] = '\0'; rxIdx = 0;
-            if (!motionRunning) handleCommand(rxBuf);
+            rxBuf[rxIdx] = '\0';
+            rxIdx = 0;
+            if (!motionRunning)
+                handleCommand(rxBuf);
         }
-        else if (c != '\r') { rxBuf[rxIdx++] = c; }
+        else if (c != '\r')
+        {
+            rxBuf[rxIdx++] = c;
+        }
     }
 #endif
 }
-
-
-// #include <Arduino.h>
-// // Servo library removed — SG90 driven directly, no timer conflict
-
-// // ─── CONFIG ──────────────────────────────────────────────────────────────────
-// const uint8_t NO_OF_JOINTS = 4;
-// const uint8_t J1_IDX = 0;
-// const uint8_t J2_IDX = 1;
-// const uint8_t J3_IDX = 2;
-// const uint8_t Z_IDX = 3;
-
-// const uint8_t STEP_PINS[NO_OF_JOINTS] = {2, 4, 6, 8};//8
-// const uint8_t DIR_PINS[NO_OF_JOINTS] = {3, 5, 7, 9};//9
-// const uint8_t LIMIT_PINS[NO_OF_JOINTS] = {18, 19, 20, 21};
-
-// const uint8_t GRIPPER_PIN = 10;
-// const uint8_t SERVO_OPEN_ANGLE = 180;
-// const uint8_t SERVO_CLOSE_ANGLE = 60;
-// const uint8_t LED_PIN = 13;
-
-// const unsigned long HOME_SPEED_US = 900;
-// const float DEFAULT_MAX_SPEED = 200.0f; // was 1200
-// const float DEFAULT_ACCEL = 400.0f;     // was 800.0f;
-// const float MIN_SPEED = 80.0f;
-// const unsigned long SELFTEST_BLINK_MS = 150;
-
-// // ── BRESENHAM TOGGLE ─────────────────────────────────────────────────────────
-// // 1 = axes synchronised (smooth coordinated motion)
-// // 0 = axes independent (good for testing each axis individually)
-// #define USE_BRESENHAM 1
-
-// // ─── DEMO MODE ───────────────────────────────────────────────────────────────
-// // 0 = all four axes back and forth continuously
-// // 1 = single axis only — set DEMO_AXIS below
-// // 2 = production serial command mode
-// #define DEMO_MODE 1
-// #define DEMO_AXIS Z_IDX // change to J2_IDX, J3_IDX, or Z_IDX
-// #define DEMO_STEPS 1000 // steps per direction
-// #define DEMO_PAUSE 300  // ms pause between moves
-
-// // 520 steps and 180 degree in steps to degree = 1 revolution = 360 degrees
-// // 350 steps and 180 degree in steps to degree = 1 revolution = 180 degrees
-// //  ─── UNIT CONVERSION ─────────────────────────────────────────────────────────
-// const float STEPS_PER_REV_J1 = 200.0f;
-// const float STEPS_PER_REV_J2 = 400.0f;                                                                                                 //
-// const float STEPS_PER_REV_J3 = 200.0f;                                                                                                 //
-// const float STEPS_PER_DEG_ARR[NO_OF_JOINTS] = {STEPS_PER_REV_J1 / 360.0f, STEPS_PER_REV_J2 / 360.0f, STEPS_PER_REV_J3 / 360.0f, 0.0f}; // Z uses mm, not degrees
-// const float STEPS_PER_MM_Z = 25.0f;
-// const uint8_t Z_HOME_DIR = LOW; // direction toward limit switch — flip if wrong
-// const uint8_t Z_UP_DIR = HIGH;  // direction away from limit switch
-
-// inline long degToSteps(float deg, uint8_t joint) { return (long)(deg * STEPS_PER_DEG_ARR[joint]); }
-// inline long mmToSteps(float mm) { return (long)(mm * STEPS_PER_MM_Z); }
-
-// // ─── GLOBALS ─────────────────────────────────────────────────────────────────
-// char rxBuf[64];
-// uint8_t rxIdx = 0;
-// long jointPos[NO_OF_JOINTS] = {0, 0, 0, 0};
-// float maxSpeed = DEFAULT_MAX_SPEED;
-// float accel = DEFAULT_ACCEL;
-
-// // ─── ISR MOTION STATE ────────────────────────────────────────────────────────
-// struct AxisState
-// {
-//   volatile long stepsRemaining;
-//   volatile long accumulator;
-//   volatile long delta;
-//   volatile bool active;
-// };
-
-// volatile AxisState axes[NO_OF_JOINTS];
-// volatile long masterSteps = 0;
-// volatile long stepsDone = 0;
-// volatile float currentSpeed = MIN_SPEED;
-// volatile bool motionRunning = false;
-// volatile long rampSteps = 0;
-// volatile long decelStart = 0;
-
-// // ─── HOMING INTERRUPT FLAGS ──────────────────────────────────────────────────
-// volatile bool limitHit[NO_OF_JOINTS] = {false, false, false, false};
-
-// void LIMIT_ISR_0() { limitHit[0] = true; }
-// void LIMIT_ISR_1() { limitHit[1] = true; }
-// void LIMIT_ISR_2() { limitHit[2] = true; }
-// void LIMIT_ISR_3() { limitHit[3] = true; }
-
-// const uint8_t INT_NUMS[NO_OF_JOINTS] = {5, 4, 3, 2};
-// void (*const LIMIT_ISRS[NO_OF_JOINTS])() = {
-//     LIMIT_ISR_0, LIMIT_ISR_1, LIMIT_ISR_2, LIMIT_ISR_3};
-
-// // ─── PROTOTYPES ──────────────────────────────────────────────────────────────
-// void servoInit();
-// void servoWriteAngle(uint8_t angle);
-// void gripperOpen();
-// void gripperClose();
-// void stuck_switch_detection_onboot();
-// bool homeJoint(uint8_t j);
-// void homeAll();
-// void startMove(long tJ1, long tJ2, long tJ3, long tZ);
-// void waitForMove();
-// void rehomeZ(long layerZsteps);
-// void handleCommand(const char *cmd);
-// void setupTimer5();
-// void stopTimer5();
-// void measure_z_axis_steps_per_mm();
-
-// // ─── SERIAL PROTOCOL ─────────────────────────────────────────────────────────
-// //  HOME                 → OK:HOME
-// //  MOVE:j1,j2,j3,z_mm  → OK:MOVE
-// //  GRIP                 → OK:GRIP
-// //  RELEASE              → OK:RELEASE
-// //  REHOME_Z:z_mm        → OK:REHOME_Z
-// //  SET_SPEED:v          → OK:SPEED
-// //  SET_ACCEL:a          → OK:ACCEL
-// //  STATUS               → STATUS:IDLE | STATUS:RUNNING
-// //  (boot)               → READY
-// //  Errors  → ERR:<CODE>:<DETAIL>
-// //  Bad cmd → NACK:<REASON>
-
-// // ─── TIMER 5 ISR ─────────────────────────────────────────────────────────────
-// ISR(TIMER5_COMPA_vect)
-// {
-//   if (!motionRunning)
-//     return;
-
-//   long i = stepsDone;
-//   float v;
-
-//   if (i < rampSteps)
-//   {
-//     v = sqrtf(MIN_SPEED * MIN_SPEED + 2.0f * accel * (float)(i + 1));
-//     if (v > maxSpeed)
-//       v = maxSpeed;
-//   }
-//   else if (i >= decelStart)
-//   {
-//     long left = masterSteps - i;
-//     v = sqrtf(MIN_SPEED * MIN_SPEED + 2.0f * accel * (float)left);
-//     if (v > maxSpeed)
-//       v = maxSpeed;
-//   }
-//   else
-//   {
-//     v = maxSpeed;
-//   }
-//   currentSpeed = v;
-
-//   uint16_t ticks = (uint16_t)(2000000.0f / v);
-//   if (ticks < 200)
-//     ticks = 200;
-//   OCR5A = ticks;
-
-// #if USE_BRESENHAM
-//   for (uint8_t j = 0; j < NO_OF_JOINTS; j++)
-//   {
-//     if (!axes[j].active)
-//       continue;
-//     axes[j].accumulator += axes[j].delta;
-//     if (axes[j].accumulator >= masterSteps)
-//     {
-//       digitalWrite(STEP_PINS[j], HIGH);
-//       axes[j].accumulator -= masterSteps;
-//       axes[j].stepsRemaining--;
-//     }
-//   }
-// #else
-//   for (uint8_t j = 0; j < NO_OF_JOINTS; j++)
-//   {
-//     if (axes[j].active && axes[j].stepsRemaining > 0)
-//     {
-//       digitalWrite(STEP_PINS[j], HIGH);
-//       axes[j].stepsRemaining--;
-//     }
-//   }
-// #endif
-
-//   delayMicroseconds(2);
-//   for (uint8_t j = 0; j < NO_OF_JOINTS; j++)
-//     digitalWrite(STEP_PINS[j], LOW);
-
-//   stepsDone++;
-//   if (stepsDone >= masterSteps)
-//   {
-//     motionRunning = false;
-//     stopTimer5();
-//   }
-// }
-
-// // ─── TIMER 5 ─────────────────────────────────────────────────────────────────
-// void setupTimer5()
-// {
-//   TCCR5A = 0;
-//   TCCR5B = 0;
-//   TCNT5 = 0;
-//   TCCR5B |= (1 << WGM12) | (1 << CS11);
-//   OCR5A = (uint16_t)(2000000.0f / MIN_SPEED);
-//   TIMSK5 |= (1 << OCIE5A);
-// }
-
-// void stopTimer5()
-// {
-//   TIMSK5 &= ~(1 << OCIE5A);
-//   TCCR5B = 0;
-// }
-
-// // ─── COORDINATED MOVE ────────────────────────────────────────────────────────
-// void startMove(long tJ1, long tJ2, long tJ3, long tZ)
-// {
-//   long d[NO_OF_JOINTS];
-//   d[J1_IDX] = labs(tJ1 - jointPos[J1_IDX]);
-//   d[J2_IDX] = labs(tJ2 - jointPos[J2_IDX]);
-//   d[J3_IDX] = labs(tJ3 - jointPos[J3_IDX]);
-//   d[Z_IDX] = labs(tZ - jointPos[Z_IDX]);
-
-//   masterSteps = max(max(d[J1_IDX], d[J2_IDX]), max(d[J3_IDX], d[Z_IDX]));
-//   if (masterSteps == 0)
-//     return;
-
-//   digitalWrite(DIR_PINS[J1_IDX], (tJ1 >= jointPos[J1_IDX]) ? HIGH : LOW);
-//   digitalWrite(DIR_PINS[J2_IDX], (tJ2 >= jointPos[J2_IDX]) ? HIGH : LOW);
-//   digitalWrite(DIR_PINS[J3_IDX], (tJ3 >= jointPos[J3_IDX]) ? HIGH : LOW);
-//   digitalWrite(DIR_PINS[Z_IDX], (tZ >= jointPos[Z_IDX]) ? HIGH : LOW);
-
-//   rampSteps = (long)((maxSpeed * maxSpeed - MIN_SPEED * MIN_SPEED) / (2.0f * accel));
-//   if (rampSteps > masterSteps / 2)
-//     rampSteps = masterSteps / 2;
-//   decelStart = masterSteps - rampSteps;
-
-//   for (uint8_t j = 0; j < NO_OF_JOINTS; j++)
-//   {
-//     axes[j].delta = d[j];
-//     axes[j].stepsRemaining = d[j];
-//     axes[j].accumulator = 0;
-//     axes[j].active = (d[j] > 0);
-//   }
-
-//   stepsDone = 0;
-//   currentSpeed = MIN_SPEED;
-//   motionRunning = true;
-
-//   jointPos[J1_IDX] = tJ1;
-//   jointPos[J2_IDX] = tJ2;
-//   jointPos[J3_IDX] = tJ3;
-//   jointPos[Z_IDX] = tZ;
-
-//   setupTimer5();
-// }
-
-// void waitForMove()
-// {
-//   while (motionRunning)
-//   {
-//   }
-// }
-
-// // ─── LIMIT SWITCH ────────────────────────────────────────────────────────────
-// bool limitTriggered(uint8_t pin)
-// {
-//   if (digitalRead(pin) == HIGH)
-//   {
-//     delayMicroseconds(3000);
-//     return (digitalRead(pin) == HIGH);
-//   }
-//   return false;
-// }
-
-// // ─── STUCK SWITCH DETECTION ──────────────────────────────────────────────────
-// void stuck_switch_detection_onboot()
-// {
-//   for (uint8_t i = 0; i < NO_OF_JOINTS; ++i)
-//   {
-//     if (limitTriggered(LIMIT_PINS[i]))
-//     {
-//       Serial.print("ERR:SELFTEST:SWITCH_STUCK:J");
-//       Serial.println(i + 1);
-//       while (true)
-//       {
-//         digitalWrite(LED_PIN, HIGH);
-//         delay(SELFTEST_BLINK_MS);
-//         digitalWrite(LED_PIN, LOW);
-//         delay(SELFTEST_BLINK_MS);
-//       }
-//     }
-//   }
-// }
-
-// void test_limit_switches()
-// {
-//   for (uint8_t j = 0; j < NO_OF_JOINTS; ++j)
-//   {
-//     Serial.print("Testing limit switch for joint ");
-//     Serial.println(j + 1);
-//     Serial.println("Please trigger the switch now...");
-//     while (!limitTriggered(LIMIT_PINS[j]))
-//     {
-//       // Wait for the user to trigger the switch
-//     }
-//     Serial.println("Switch triggered successfully!");
-//   }
-// }
-
-// void test(uint8_t j)
-// {
-
-//   // Make sure direction pin is set toward home
-//   digitalWrite(DIR_PINS[j], HIGH); // LOW = move toward limit switch
-//   delayMicroseconds(10);           // let driver latch direction before first step
-
-//   for (int i = 0; i < 10; i++)
-//   {
-//     digitalWrite(STEP_PINS[j], HIGH);
-//     delayMicroseconds(500);
-//     digitalWrite(STEP_PINS[j], LOW);
-//     delayMicroseconds(500);
-//   }
-// }
-
-// bool homeJoint(uint8_t j)
-// {
-//     // Reset flag
-//     limitHit[j] = false;
-
-//     // Move toward the limit switch
-//     digitalWrite(DIR_PINS[j], LOW);   // LOW = toward home
-//     delayMicroseconds(10);
-
-//     unsigned long start = millis();
-//     const unsigned long timeout = 6000;
-//     const unsigned long RAMP_START_US = 3000;
-//     const int RAMP_STEPS = 40;
-
-//     int stepCount = 0;
-
-//     while (true)
-//     {
-//         // Check switch
-//         if (limitTriggered(LIMIT_PINS[j]))
-//         {
-//             limitHit[j] = true;
-//             break;
-//         }
-
-//         // Soft‑start ramp
-//         unsigned long stepUs = HOME_SPEED_US;
-//         if (stepCount < RAMP_STEPS)
-//             stepUs = RAMP_START_US - ((RAMP_START_US - HOME_SPEED_US) * stepCount / RAMP_STEPS);
-
-//         // Step motor
-//         digitalWrite(STEP_PINS[j], HIGH);
-//         delayMicroseconds(stepUs);
-//         digitalWrite(STEP_PINS[j], LOW);
-//         delayMicroseconds(stepUs);
-
-//         stepCount++;
-
-//         // Timeout
-//         if (millis() - start > timeout)
-//         {
-//             Serial.print("ERR:HOMING:TIMEOUT:J");
-//             Serial.println(j + 1);
-//             return false;
-//         }
-//     }
-
-//     // // Backoff (optional but recommended)
-//     // digitalWrite(DIR_PINS[j], HIGH);  // move away from switch
-//     // delayMicroseconds(10);
-
-//     // for (int s = 0; s < 50; s++)      // ~1 degree or small distance
-//     // {
-//     //     digitalWrite(STEP_PINS[j], HIGH);
-//     //     delayMicroseconds(HOME_SPEED_US);
-//     //     digitalWrite(STEP_PINS[j], LOW);
-//     //     delayMicroseconds(HOME_SPEED_US);
-//     // }
-
-//     jointPos[j] = 0;
-
-//     Serial.print("HOMED: Joint ");
-//     Serial.println(j + 1);
-//     return true;
-// }
-
-
-// // // ─── HOMING ──────────────────────────────────────────────────────────────────
-// // bool homeJoint(uint8_t j)
-// // {
-// //   limitHit[j] = false;
-// //   attachInterrupt(INT_NUMS[j], LIMIT_ISRS[j], RISING);
-
-// //   if (limitTriggered(LIMIT_PINS[j]))
-// //   {
-// //     detachInterrupt(INT_NUMS[j]);
-// //     Serial.print("ERR:HOMING:STUCK_AT_START:J");
-// //     Serial.println(j + 1);
-// //     return false;
-// //   }
-
-// //   digitalWrite(DIR_PINS[j], LOW);
-// //   unsigned long start = millis();
-
-// //   while (!limitHit[j])
-// //   {
-// //     digitalWrite(STEP_PINS[j], HIGH);
-// //     delayMicroseconds(HOME_SPEED_US);
-// //     digitalWrite(STEP_PINS[j], LOW);
-// //     delayMicroseconds(HOME_SPEED_US);
-
-// //     if (millis() - start > 4000)
-// //     {
-// //       detachInterrupt(INT_NUMS[j]);
-// //       Serial.print("ERR:HOMING:TIMEOUT:J");
-// //       Serial.println(j + 1);
-// //       return false;
-// //     }
-// //   }
-
-// //   detachInterrupt(INT_NUMS[j]);
-// //   jointPos[j] = 0;
-// //   return true;
-// // }
-
-// void homeAll()
-// {
-//   for (uint8_t j = 0; j < NO_OF_JOINTS; ++j)
-//   {
-//     if (!homeJoint(j))
-//       return;
-//   }
-// }
-
-// // ─── Z FUNCTIONAL TEST ───────────────────────────────────────────────────────
-// // Call once from setup() after homing to verify Z moves upward correctly.
-// // Moves 20mm up from home, pauses, then returns to home.
-// void test_z_movement()
-// {
-//   const float TEST_MM = 100.0f; // how far to move up — safe, well within 200mm max
-//   const long TEST_STEPS = (long)(TEST_MM * STEPS_PER_MM_Z);
-
-//   Serial.println("Z_TEST:START"); //130MM TO 211MM  - 2000 STEPS 
-
-//   // Move up
-//   digitalWrite(DIR_PINS[Z_IDX], Z_UP_DIR);
-//   delayMicroseconds(10);
-//   for (long s = 0; s < TEST_STEPS; s++)
-//   {
-//     digitalWrite(STEP_PINS[Z_IDX], HIGH);
-//     delayMicroseconds(HOME_SPEED_US);
-//     digitalWrite(STEP_PINS[Z_IDX], LOW);
-//     delayMicroseconds(HOME_SPEED_US);
-//   }
-//   jointPos[Z_IDX] = TEST_STEPS;
-
-//   Serial.print("Z_TEST:UP ");
-//   Serial.print(TEST_MM);
-//   Serial.println("mm — pausing 2s");
-//   delay(2000);
-
-//   // Return to home
-//   // digitalWrite(DIR_PINS[Z_IDX], Z_HOME_DIR);
-//   // delayMicroseconds(10);
-//   // for (long s = 0; s < TEST_STEPS; s++)
-//   // {
-//   //   digitalWrite(STEP_PINS[Z_IDX], HIGH);
-//   //   delayMicroseconds(HOME_SPEED_US);
-//   //   digitalWrite(STEP_PINS[Z_IDX], LOW);
-//   //   delayMicroseconds(HOME_SPEED_US);
-//   // }
-//   jointPos[Z_IDX] = 0;
-
-//   Serial.println("Z_TEST:HOME — done");
-// }
-
-// // ─── Z REHOME ────────────────────────────────────────────────────────────────
-// void rehomeZ(long layerZsteps)
-// {
-//   if (!homeJoint(Z_IDX))
-//     return;
-//   if (layerZsteps > 0)
-//   {
-//     startMove(jointPos[J1_IDX], jointPos[J2_IDX],
-//               jointPos[J3_IDX], layerZsteps);
-//     waitForMove();
-//   }
-// }
-
-// // ─── GRIPPER ─────────────────────────────────────────────────────────────────
-// void servoWriteAngle(uint8_t angle)
-// {
-//   uint16_t pulseUs = 500 + (uint16_t)((uint32_t)angle * 2000 / 180);
-//   for (uint8_t i = 0; i < 30; i++)
-//   {
-//     digitalWrite(GRIPPER_PIN, HIGH);
-//     delayMicroseconds(pulseUs);
-//     digitalWrite(GRIPPER_PIN, LOW);
-//     delayMicroseconds(20000 - pulseUs);
-//   }
-// }
-
-// void servoInit()
-// {
-//   pinMode(GRIPPER_PIN, OUTPUT);
-//   digitalWrite(GRIPPER_PIN, LOW);
-// }
-
-// void gripperOpen() { servoWriteAngle(SERVO_OPEN_ANGLE); }
-// void gripperClose() { servoWriteAngle(SERVO_CLOSE_ANGLE); }
-
-// // ─── COMMAND PARSING ─────────────────────────────────────────────────────────
-// enum CommandType
-// {
-//   CMD_MOVE,
-//   CMD_GRIP,
-//   CMD_RELEASE,
-//   CMD_REHOME_Z,
-//   CMD_HOME_ALL,
-//   CMD_SET_SPEED,
-//   CMD_SET_ACCEL,
-//   CMD_STATUS,
-//   CMD_UNKNOWN
-// };
-
-// CommandType parseCommand(const char *cmd)
-// {
-//   if (strncmp(cmd, "MOVE:", 5) == 0)
-//     return CMD_MOVE;
-//   if (strcmp(cmd, "GRIP") == 0)
-//     return CMD_GRIP;
-//   if (strcmp(cmd, "RELEASE") == 0)
-//     return CMD_RELEASE;
-//   if (strncmp(cmd, "REHOME_Z:", 9) == 0)
-//     return CMD_REHOME_Z;
-//   if (strcmp(cmd, "HOME") == 0)
-//     return CMD_HOME_ALL;
-//   if (strncmp(cmd, "SET_SPEED:", 10) == 0)
-//     return CMD_SET_SPEED;
-//   if (strncmp(cmd, "SET_ACCEL:", 10) == 0)
-//     return CMD_SET_ACCEL;
-//   if (strcmp(cmd, "STATUS") == 0)
-//     return CMD_STATUS;
-//   return CMD_UNKNOWN;
-// }
-
-// // ─── COMMAND HANDLER ─────────────────────────────────────────────────────────
-// void handleCommand(const char *cmd)
-// {
-//   digitalWrite(LED_PIN, HIGH);
-
-//   switch (parseCommand(cmd))
-//   {
-
-//   case CMD_MOVE:
-//   {
-//     float j1, j2, j3, z;
-//     if (sscanf(cmd + 5, "%f,%f,%f,%f", &j1, &j2, &j3, &z) == 4)
-//     {
-//       startMove(degToSteps(j1, J1_IDX), degToSteps(j2, J2_IDX),
-//                 degToSteps(j3, J3_IDX), mmToSteps(z));
-//       waitForMove();
-//       Serial.println("OK:MOVE");
-//     }
-//     else
-//     {
-//       Serial.println("NACK:BAD_ARGS:MOVE");
-//     }
-//   }
-//   break;
-
-//   case CMD_GRIP:
-//     gripperClose();
-//     Serial.println("OK:GRIP");
-//     break;
-
-//   case CMD_RELEASE:
-//     gripperOpen();
-//     Serial.println("OK:RELEASE");
-//     break;
-
-//   case CMD_REHOME_Z:
-//   {
-//     float z_mm = atof(cmd + 9);
-//     rehomeZ(mmToSteps(z_mm));
-//     Serial.println("OK:REHOME_Z");
-//   }
-//   break;
-
-//   case CMD_HOME_ALL:
-//     homeAll();
-//     Serial.println("OK:HOME");
-//     break;
-
-//   case CMD_SET_SPEED:
-//   {
-//     float v = atof(cmd + 10);
-//     if (v > MIN_SPEED)
-//     {
-//       maxSpeed = v;
-//       Serial.println("OK:SPEED");
-//     }
-//     else
-//       Serial.println("NACK:SPEED_TOO_LOW");
-//   }
-//   break;
-
-//   case CMD_SET_ACCEL:
-//   {
-//     float a = atof(cmd + 10);
-//     if (a > 0)
-//     {
-//       accel = a;
-//       Serial.println("OK:ACCEL");
-//     }
-//     else
-//       Serial.println("NACK:ACCEL_INVALID");
-//   }
-//   break;
-
-//   case CMD_STATUS:
-//     Serial.println(motionRunning ? "STATUS:RUNNING" : "STATUS:IDLE");
-//     break;
-
-//   default:
-//     Serial.print("NACK:UNKNOWN:");
-//     Serial.println(cmd);
-//     break;
-//   }
-// //160 degrees
-//   digitalWrite(LED_PIN, LOW);
-// }
-//  bool condition = false;
-// // ─── SETUP ───────────────────────────────────────────────────────────────────
-// void setup()
-// {
-//   Serial.begin(115200);
-
-//   for (uint8_t i = 0; i < NO_OF_JOINTS; ++i)
-//   {
-//     pinMode(STEP_PINS[i], OUTPUT);
-//     digitalWrite(STEP_PINS[i], LOW);
-//     pinMode(DIR_PINS[i], OUTPUT);
-//     digitalWrite(DIR_PINS[i], LOW);
-//     pinMode(LIMIT_PINS[i], INPUT_PULLUP);
-//   }
-//   pinMode(LED_PIN, OUTPUT);
-
-//   // servoInit();
-//   // gripperOpen();
-
-// #if DEMO_MODE == 2
-//   // stuck_switch_detection_onboot();
-//   // homeAll();
-// #endif
-//   // homeJoint(J1_IDX);
-
-//  // homeJoint(J1_IDX);
-//    homeJoint(Z_IDX);
-//    // startMove(degToSteps(180, J1_IDX), 0, 0, 0);
-//    //
-//    test_z_movement();
-//   condition = true;
-// }
-
-// // ─── MAIN LOOP ───────────────────────────────────────────────────────────────
-// void loop()
-// {
-
-// #if DEMO_MODE == 0
-//   // ── All four axes back and forth continuously ─────────────────────────────
-//   // startMove(DEMO_STEPS, DEMO_STEPS, DEMO_STEPS, DEMO_STEPS);
-//   startMove(degToSteps(90, J1_IDX), degToSteps(90, J2_IDX),
-//             degToSteps(90, J3_IDX), mmToSteps(90));
-
-//   waitForMove();
-//   delay(DEMO_PAUSE);
-
-//   startMove(0, 0, 0, 0);
-//   waitForMove();
-//   delay(DEMO_PAUSE);
-
-//   gripperClose();
-//   delay(DEMO_PAUSE);
-//   gripperOpen();
-
-// #elif DEMO_MODE == 1
-//   // ── Single axis — only DEMO_AXIS moves, all others stay at 0 ─────────────
-//   long fwd[NO_OF_JOINTS] = {0, 0, 0, 0};
-//   // fwd[DEMO_AXIS] = 1800; // or mmToSteps(50) for Z axis
-
-//   // startMove(fwd[0], fwd[1], fwd[2], fwd[3]);
-//   // waitForMove();
-//   // delay(DEMO_PAUSE);
-
-//   // startMove(0, 0, 0, 0);
-//   // waitForMove();
-//   // delay(DEMO_PAUSE);
-// //  static bool done = false;
-// //   if (done) return;
-
- 
-
-// // test(Z_IDX);
-//   // done = true;
-//  //startMove(0, fwd[1], fwd[2], fwd[3]);
-// #else
-//   // ── Production: serial command mode ──────────────────────────────────────
-//   while (Serial.available())
-//   {
-//     char c = Serial.read();
-//     if (c == '\n' || rxIdx >= 62)
-//     {
-//       rxBuf[rxIdx] = '\0';
-//       rxIdx = 0;
-//       if (!motionRunning)
-//         handleCommand(rxBuf);
-//     }
-//     else if (c != '\r')
-//     {
-//       rxBuf[rxIdx++] = c;
-//     }
-//   }
-// #endif
-// }
