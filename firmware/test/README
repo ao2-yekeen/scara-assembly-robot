@@ -1,0 +1,63 @@
+# SCARA Duplo Robot
+
+
+## Serial Protocol
+
+| Command            | Response          |
+|--------------------|-------------------|
+| `HOME`             | `OK:HOME`         |
+| `MOVE:j1,j2,j3,z` | `OK:MOVE`         |
+| `GRIP`             | `OK:GRIP`         |
+| `RELEASE`          | `OK:RELEASE`      |
+| `REHOME_Z:z_mm`    | `OK:REHOME_Z`     |
+| `SET_SPEED:v`      | `OK:SPEED`        |
+| `SET_ACCEL:a`      | `OK:ACCEL`        |
+| `STATUS`           | `STATUS:IDLE` or `STATUS:RUNNING` |
+| *(boot)*           | `READY`           |
+
+Errors: `ERR:<CODE>:<DETAIL>`  
+Bad commands: `NACK:<REASON>`
+
+---
+
+## Running the serial tests
+
+```bash
+# Install pyserial if needed
+pip install pyserial
+
+# Run all tests (replace COM3 with your port)
+python tests/test_serial.py --port COM3
+
+# Skip HOME if already homed
+python tests/test_serial.py --port COM3 --skip-home
+```
+
+---
+
+## Uploading firmware (PlatformIO)
+
+```bash
+cd firmware
+pio run --target upload
+```
+
+If upload fails with `stk500_getsync`, confirm `platformio.ini` has:
+```
+upload_protocol = wiring
+board           = megaatmega2560
+```
+
+---
+
+## Floor plan format
+
+```
+1 1 1 1
+1 0 0 1
+1 0 0 1
+1 1 1 1
+```
+
+Each `1` = one 8mm × 8mm Duplo block position.  
+`NUM_LAYERS` in `robot_config.py` controls how many times the layout is stacked.
