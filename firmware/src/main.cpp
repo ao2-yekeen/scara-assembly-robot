@@ -1,5 +1,4 @@
 #include <Arduino.h>
-// Servo library removed — SG90 driven directly, no timer conflict
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const uint8_t NO_OF_JOINTS = 4;
