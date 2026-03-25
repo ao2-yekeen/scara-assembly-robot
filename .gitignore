@@ -2,3 +2,4 @@ firmware/.vscode/extensions.json
 firmware/src/lego-builder.code-workspace
 firmware/venv/*
 firmware/test/__pycache__/*
+high_level_control/floor_plan.txt
