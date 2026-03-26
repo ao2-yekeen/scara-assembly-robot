@@ -95,6 +95,6 @@ MAX_LAYERS = 2  # maximum number of layers
 # ─── SERIAL ──────────────────────────────────────────────────────────────────
 DEFAULT_PORT   = "COM5"
 DEFAULT_BAUD   = 115200
-HOME_TIMEOUT   = 30
-MOVE_TIMEOUT   = 15
-REHOME_TIMEOUT = 20
+HOME_TIMEOUT   = 120
+MOVE_TIMEOUT   = 120
+REHOME_TIMEOUT = 120
