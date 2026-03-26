@@ -36,6 +36,12 @@ J2_GEAR2        = 48
 J2_HOME_ANGLE   = -165
 J2_LIMIT        = 165
 
+# ─── Joint 3 (Gripper Revolute) ────────────────────────────────────────────────
+J3_MOTOR_TEETH  = 60
+J3_GEAR2        = 72
+J3_HOME_ANGLE   = -165
+J3_LIMIT        = 165
+
 # ─── BLOCK SIZE — only edit these two values ─────────────────────────────────
 BLOCK_STUDS = 2       # studs per block side (1 for 1×1, 2 for 2×2, etc.)
 STUD_PITCH  = 0.0154  # stud centre-to-centre pitch (m) — standard Duplo/Lego
