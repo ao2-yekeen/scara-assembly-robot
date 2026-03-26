@@ -6,7 +6,4 @@ Robot to build a lego-house
 ### High Level Control
 The Python script in `high_level_control/` must be run from within the `high_level_control` folder:
 
-```bash
-cd high_level_control
-python3 main.py
-```
+go to ReadMe there
