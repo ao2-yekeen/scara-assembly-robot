@@ -15,6 +15,28 @@
 
 from math import sqrt
 
+    "STEPPER_STEP_DEG": 1.8,
+    
+    # Joint 1 (Shoulder - Old L1)
+    "J1": {
+        "MOTOR_TEETH": 20,
+        "GEAR1_BIG": 72,
+        "GEAR1_SMALL": 40,
+        "GEAR2": 100,
+        "HOME_ANGLE": -80,
+        "LIMIT": 80
+    },
+    
+    # Joint 2 (Elbow - Old L2)
+    "J2": {
+        "MOTOR_TEETH": 20,
+        "GEAR1_BIG": 50,
+        "GEAR1_SMALL": 20,
+        "GEAR2": 48,
+        "HOME_ANGLE": -165,
+        "LIMIT": 165
+    },
+
 # ─── BLOCK SIZE — only edit these two values ─────────────────────────────────
 BLOCK_STUDS = 2       # studs per block side (1 for 1×1, 2 for 2×2, etc.)
 STUD_PITCH  = 0.0154  # stud centre-to-centre pitch (m) — standard Duplo/Lego
