@@ -1,4 +1,4 @@
-# SCARA Duplo Floor‑Plan Builder**
+# SCARA Duplo Floor‑Plan Builder
 
 ## **Overview**
 This project controls a 2‑DOF SCARA robot to automatically build multi‑layer DUPLO floor‑plan layouts.  
