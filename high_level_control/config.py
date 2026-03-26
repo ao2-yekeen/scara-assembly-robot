@@ -15,8 +15,10 @@
 
 from math import sqrt
 
+
+    "OPTIMIZATION_THRESHOLD": 5e-3  # 5mm
     "STEPPER_STEP_DEG": 1.8,
-    
+# ─── Joint 1 (Base Revolute) ─────────────────────────────────    
     # Joint 1 (Shoulder - Old L1)
     "J1": {
         "MOTOR_TEETH": 20,
@@ -27,7 +29,7 @@ from math import sqrt
         "LIMIT": 80
     },
     
-    # Joint 2 (Elbow - Old L2)
+# ─── Joint 2 (Elbow Revolute) ───────────────────────────────── 
     "J2": {
         "MOTOR_TEETH": 20,
         "GEAR1_BIG": 50,
