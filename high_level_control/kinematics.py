@@ -64,12 +64,15 @@ def ik(x: float, y: float) -> tuple:
     # 4. Extract Results
     q1_best_deg = Q1G.flat[idx]
     q2_best_deg = Q2G.flat[idx]
-    
-    # Calculate steps relative to home position
-    steps_j1 = round(abs(q1_best_deg - J1_HOME_ANGLE) / j1_res)
-    steps_j2 = round(abs(q2_best_deg - J2_HOME_ANGLE) / j2_res)
+    q3=-(q1_best_deg + q2_best_deg)  # End-effector angle to keep block level
 
-    return steps_j1, steps_j2, round(q1_best_deg, 2), round(q2_best_deg, 2)
+    q1 = q1_best_deg - J1_HOME_ANGLE
+    q2 = q2_best_deg - J2_HOME_ANGLE
+    print(f"IK: Target ({x:.3f}, {y:.3f}) → q1={q1:.2f}°, q2={q2:.2f}°, q3={q3:.2f}° (err={best_err:.4f}m)")
+
+    return  (q1, q2, q3)
+
+
 
 
 def grid_to_world(col: int, row: int) -> tuple[float, float]:
