@@ -41,8 +41,8 @@ BLOCK_STUDS = 2       # studs per block side (1 for 1×1, 2 for 2×2, etc.)
 STUD_PITCH  = 0.0154  # stud centre-to-centre pitch (m) — standard Duplo/Lego
 
 # ─── ARM GEOMETRY ────────────────────────────────────────────────────────────
-L1 = 0.150  # upper arm length (m)
-L2 = 0.100  # forearm length (m)
+L1 = 0.20026  # upper arm length (m)
+L2 = 0.08391  # forearm length (m)
 
 # ─── DERIVED: block centre-to-centre pitch ────────────────────────────────────
 DUPLO_PITCH = BLOCK_STUDS * STUD_PITCH  # e.g. 2 × 0.0154 = 0.0308m
