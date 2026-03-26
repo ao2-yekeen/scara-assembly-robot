@@ -16,28 +16,25 @@
 from math import sqrt
 
 
-    "OPTIMIZATION_THRESHOLD": 5e-3  # 5mm
-    "STEPPER_STEP_DEG": 1.8,
-# ─── Joint 1 (Base Revolute) ─────────────────────────────────    
-    # Joint 1 (Shoulder - Old L1)
-    "J1": {
-        "MOTOR_TEETH": 20,
-        "GEAR1_BIG": 72,
-        "GEAR1_SMALL": 40,
-        "GEAR2": 100,
-        "HOME_ANGLE": -80,
-        "LIMIT": 80
-    },
-    
-# ─── Joint 2 (Elbow Revolute) ───────────────────────────────── 
-    "J2": {
-        "MOTOR_TEETH": 20,
-        "GEAR1_BIG": 50,
-        "GEAR1_SMALL": 20,
-        "GEAR2": 48,
-        "HOME_ANGLE": -165,
-        "LIMIT": 165
-    },
+# ─── ROBOT SETTINGS ──────────────────────────────────────────────────────────
+OPTIMIZATION_THRESHOLD = 5e-3  # 5mm
+STEPPER_STEP_DEG = 1.8
+
+# ─── Joint 1 (Base Revolute) ─────────────────────────────────────────────────
+J1_MOTOR_TEETH  = 20
+J1_GEAR1_BIG    = 72
+J1_GEAR1_SMALL  = 40
+J1_GEAR2        = 100
+J1_HOME_ANGLE   = -80
+J1_LIMIT        = 80
+
+# ─── Joint 2 (Elbow Revolute) ────────────────────────────────────────────────
+J2_MOTOR_TEETH  = 20
+J2_GEAR1_BIG    = 50
+J2_GEAR1_SMALL  = 20
+J2_GEAR2        = 48
+J2_HOME_ANGLE   = -165
+J2_LIMIT        = 165
 
 # ─── BLOCK SIZE — only edit these two values ─────────────────────────────────
 BLOCK_STUDS = 2       # studs per block side (1 for 1×1, 2 for 2×2, etc.)
