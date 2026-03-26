@@ -205,6 +205,29 @@ void stopTimer5()
 // ─── ROTATIONAL JOINTS MOVE (Timer5 ISR) ─────────────────────────────────────
 void startMoveJoints(long tJ1, long tJ2, long tJ3)
 {
+    // --- SHORTEST-PATH ANGLE WRAPPING (fix dangerous long rotations) ---
+    auto wrapTarget = [&](long target, long current, int jointIdx) -> long
+    {
+        long delta = target - current; // in steps
+
+        // Convert delta to degrees for wrapping logic
+        float degDelta = (float)delta / STEPS_PER_DEG_ARR[jointIdx];
+
+        if (degDelta > 180.0f)
+            delta -= (long)(360.0f * STEPS_PER_DEG_ARR[jointIdx]);
+        else if (degDelta < -180.0f)
+            delta += (long)(360.0f * STEPS_PER_DEG_ARR[jointIdx]);
+
+        return current + delta; // new wrapped target
+    };
+
+    // Apply wrapping to each rotational joint
+    tJ1 = wrapTarget(tJ1, jointPos[J1_IDX], J1_IDX);
+    tJ2 = wrapTarget(tJ2, jointPos[J2_IDX], J2_IDX);
+    tJ3 = wrapTarget(tJ3, jointPos[J3_IDX], J3_IDX);
+    // Z is linear → no wrapping needed
+
+
     long d[NO_OF_JOINTS];
     d[J1_IDX] = labs(tJ1 - jointPos[J1_IDX]);
     d[J2_IDX] = labs(tJ2 - jointPos[J2_IDX]);
@@ -246,14 +269,6 @@ void startMoveJoints(long tJ1, long tJ2, long tJ3)
     jointPos[J1_IDX] = tJ1;
     jointPos[J2_IDX] = tJ2;
     jointPos[J3_IDX] = tJ3;
-
-    // Debug — remove once motion is confirmed working
-    // Serial.print("DBG masterSteps=");
-    // Serial.print(masterSteps);
-    // Serial.print(" rampSteps=");
-    // Serial.print(rampSteps);
-    // Serial.print(" decelStart=");
-    // Serial.println(decelStart);
 
     setupTimer5();
 }
@@ -597,6 +612,7 @@ void setup()
     pinMode(LED_PIN, OUTPUT);
 
     // homeJoint(J1_IDX);
+
     homeJoint(Z_IDX);
     // ── Test moves — uncomment one at a time ─────────────────────────────────
     // startMoveJoints(degToSteps(180.0f, J1_IDX), 0, 0);  // J1 only, 90 deg
