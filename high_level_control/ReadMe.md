@@ -1,4 +1,4 @@
-# **README — SCARA Duplo Floor‑Plan Builder**
+# SCARA Duplo Floor‑Plan Builder**
 
 ## **Overview**
 This project controls a 2‑DOF SCARA robot to automatically build multi‑layer DUPLO floor‑plan layouts.  
@@ -155,15 +155,3 @@ Available floor‑plan shapes:
 7. Custom (blank grid)
 
 All presets scale to the current grid size.
-
----
-
-## **Dry‑Run Output**
-The attached run shows:
-
-- Grid generation  
-- Shape selection  
-- Full 2‑layer build  
-- All robot motions simulated  
-- Successful completion  
-
