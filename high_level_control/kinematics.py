@@ -2,19 +2,9 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Inverse kinematics and coordinate transforms for the SCARA arm.
 # Pure functions — no side effects, no I/O.
-
+import numpy as np
 from math import sqrt, acos, atan2, sin, cos, pi
 from config import L1, L2, DUPLO_PITCH, ORIGIN_X, ORIGIN_Y
-
-
-import numpy as np
-
-# --- CONFIGURATION (Move to config.py) ---
-CONFIG = {
-
-    
-    "OPTIMIZATION_THRESHOLD": 5e-3  # 5mm
-}
 
 def calculate_deg_per_step(motor_teeth, g1_big, g1_small, g2, base_step=1.8):
     """Calculates the degrees moved per motor step through the gear train."""
