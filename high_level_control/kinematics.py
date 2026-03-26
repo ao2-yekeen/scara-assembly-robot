@@ -7,41 +7,71 @@ from math import sqrt, acos, atan2, sin, cos, pi
 from config import L1, L2, DUPLO_PITCH, ORIGIN_X, ORIGIN_Y
 
 
-def ik(x: float, y: float) -> tuple[float, float, float]:
+import numpy as np
+
+# --- CONFIGURATION (Move to config.py) ---
+CONFIG = {
+
+    
+    "OPTIMIZATION_THRESHOLD": 5e-3  # 5mm
+}
+
+def calculate_deg_per_step(motor_teeth, g1_big, g1_small, g2, base_step=1.8):
+    """Calculates the degrees moved per motor step through the gear train."""
+    # Ratio = (Driving / Driven) * (Driving / Driven)
+    return base_step * (motor_teeth * g1_small) / (g1_big * g2)
+
+def ik(x: float, y: float, L1: float, L2: float) -> tuple:
     """
-    Two-link planar inverse kinematics (elbow-up solution).
-
-    x, y : target position in metres, robot base frame.
-
-    Returns (q1_deg, q2_deg, q3_deg) where:
-      q1 = shoulder joint angle
-      q2 = elbow joint angle
-      q3 = wrist constraint = -(q1 + q2), keeps end-effector pointing down
-
-    Raises ValueError if the position is outside the reachable workspace.
+    Advanced Inverse Kinematics using discretized workspace optimization.
+    Returns (steps_J1, steps_J2, q1_deg, q2_deg)
     """
-    r = sqrt(x**2 + y**2)
-
-    r_max = L1 + L2
-    r_min = abs(L1 - L2)
-    if not (r_min <= r <= r_max):
-        raise ValueError(
-            f"Position ({x:.3f}, {y:.3f})m is unreachable. "
-            f"Distance r={r:.3f}m, workspace [{r_min:.3f}, {r_max:.3f}]m."
-        )
-
-    cos_q2 = (r**2 - L1**2 - L2**2) / (2 * L1 * L2)
-    cos_q2 = max(-1.0, min(1.0, cos_q2))  # clamp floating-point drift
-
-    q2 = acos(cos_q2)
-    q1 = atan2(y, x) - atan2(L2 * sin(q2), L1 + L2 * cos(q2))
-    q3 = -(q1 + q2)
-
-    return (
-        round(q1 * 180 / pi, 2),
-        round(q2 * 180 / pi, 2),
-        round(q3 * 180 / pi, 2),
+    
+    # 1. Calculate Resolution based on Gear Ratios
+    j1_res = calculate_deg_per_step(
+        CONFIG["J1"]["MOTOR_TEETH"], CONFIG["J1"]["GEAR1_BIG"], 
+        CONFIG["J1"]["GEAR1_SMALL"], CONFIG["J1"]["GEAR2"]
     )
+    j2_res = calculate_deg_per_step(
+        CONFIG["J2"]["MOTOR_TEETH"], CONFIG["J2"]["GEAR1_BIG"], 
+        CONFIG["J2"]["GEAR1_SMALL"], CONFIG["J2"]["GEAR2"]
+    )
+
+    # 2. Generate Reachable Workspace Grid
+    q1_range = np.arange(CONFIG["J1"]["HOME_ANGLE"], CONFIG["J1"]["LIMIT"] + j1_res, j1_res)
+    q2_range = np.arange(CONFIG["J2"]["HOME_ANGLE"], CONFIG["J2"]["LIMIT"] + j2_res, j2_res)
+    Q1G, Q2G = np.meshgrid(q1_range, q2_range)
+
+    # Forward Kinematics for every possible stepper position
+    X_work = L1 * np.cos(np.radians(Q1G)) + L2 * np.cos(np.radians(Q1G + Q2G))
+    Y_work = L1 * np.sin(np.radians(Q1G)) + L2 * np.sin(np.radians(Q1G + Q2G))
+
+    # 3. Distance Matrix Optimization
+    dist_matrix = np.sqrt((X_work - x)**2 + (Y_work - y)**2)
+    
+    # Prefer Elbow-Up (similar to your old function)
+    # In this new coordinate system, Elbow-Up is typically Q2 > 0
+    pref_dist_matrix = dist_matrix.copy()
+    pref_dist_matrix[Q2G < 0] = np.inf 
+
+    idx_pref = np.argmin(pref_dist_matrix)
+    best_err = pref_dist_matrix.flat[idx_pref]
+
+    # Fallback if preferred config is mechanically unreachable
+    if best_err > CONFIG["OPTIMIZATION_THRESHOLD"]:
+        idx = np.argmin(dist_matrix)
+    else:
+        idx = idx_pref
+
+    # 4. Extract Results
+    q1_best_deg = Q1G.flat[idx]
+    q2_best_deg = Q2G.flat[idx]
+    
+    # Calculate steps relative to home position
+    steps_j1 = round(abs(q1_best_deg - CONFIG["J1"]["HOME_ANGLE"]) / j1_res)
+    steps_j2 = round(abs(q2_best_deg - CONFIG["J2"]["HOME_ANGLE"]) / j2_res)
+
+    return steps_j1, steps_j2, round(q1_best_deg, 2), round(q2_best_deg, 2)
 
 
 def grid_to_world(col: int, row: int) -> tuple[float, float]:
