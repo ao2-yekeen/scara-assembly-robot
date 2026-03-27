@@ -3,6 +3,7 @@
 # Inverse kinematics and coordinate transforms for the SCARA arm.
 # Pure functions — no side effects, no I/O.
 import numpy as np
+
 from math import sqrt, acos, atan2, sin, cos, pi
 from config import (
     L1, L2, DUPLO_PITCH, ORIGIN_X, ORIGIN_Y,
