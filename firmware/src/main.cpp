@@ -9,14 +9,19 @@ const uint8_t Z_IDX = 3;
 
 const uint8_t STEP_PINS[NO_OF_JOINTS] = {2, 4, 6, 8};
 const uint8_t DIR_PINS[NO_OF_JOINTS] = {3, 5, 7, 9};
-const uint8_t LIMIT_PINS[NO_OF_JOINTS] = {18, 19, 20, 21};
+const uint8_t LIMIT_PINS[NO_OF_JOINTS] = {21, 18, 19, 20};
 
 const uint8_t GRIPPER_PIN = 10;
 const uint8_t SERVO_OPEN_ANGLE = 180;
 const uint8_t SERVO_CLOSE_ANGLE = 60;
 const uint8_t LED_PIN = 13;
-
-const unsigned long HOME_SPEED_US = 900;
+// ─── HOMING SPEEDS (steps/sec per joint) ─────────────────────────────────────
+// Convert from known-good delay: steps_per_sec = 1,000,000 / (2 × delay_us)
+// J1: delay 900us  → 1,000,000 / 1800 = 555 steps/sec
+// J2: delay 4000us → 1,000,000 / 8000 = 125 steps/sec
+// J3: delay 900us  → 555 steps/sec
+// Z:  delay 900us  → 555 steps/sec
+const unsigned long HOME_SPEED_US[NO_OF_JOINTS] = {900, 5000, 900, 800};
 const float DEFAULT_MAX_SPEED = 1200.0f;
 const float DEFAULT_ACCEL = 400.0f;
 const float MIN_SPEED = 80.0f;
@@ -33,7 +38,7 @@ const float Z_MAX_MM = 250.0f;
 
 // ─── DEMO MODE ───────────────────────────────────────────────────────────────
 #define DEMO_MODE 2
-#define DEMO_PAUSE 300
+#define DEMO_PAUSE 100
 
 // ─── UNIT CONVERSION ─────────────────────────────────────────────────────────
 const float STEPS_PER_REV_J1 = 1800.0f;
@@ -287,9 +292,9 @@ void moveZ(long tZ)
     for (long s = 0; s < steps; s++)
     {
         digitalWrite(STEP_PINS[Z_IDX], HIGH);
-        delayMicroseconds(HOME_SPEED_US);
+        delayMicroseconds(HOME_SPEED_US[Z_IDX]);
         digitalWrite(STEP_PINS[Z_IDX], LOW);
-        delayMicroseconds(HOME_SPEED_US);
+        delayMicroseconds(HOME_SPEED_US[Z_IDX]);
     }
 
     jointPos[Z_IDX] = tZ;
@@ -353,9 +358,7 @@ bool homeJoint(uint8_t j)
     delayMicroseconds(10);
 
     unsigned long start = millis();
-    const unsigned long timeout = 6000;
-    const unsigned long RAMP_START_US = 3000;
-    const int RAMP_STEPS = 40;
+    const unsigned long timeout = 100000;
     int stepCount = 0;
 
     while (true)
@@ -363,17 +366,15 @@ bool homeJoint(uint8_t j)
         if (limitTriggered(LIMIT_PINS[j]))
         {
             limitHit[j] = true;
+            digitalWrite(STEP_PINS[j], LOW);
+            Serial.print("LIMIT_HIT:J");
             break;
         }
 
-        unsigned long stepUs = HOME_SPEED_US;
-        if (stepCount < RAMP_STEPS)
-            stepUs = RAMP_START_US - ((RAMP_START_US - HOME_SPEED_US) * stepCount / RAMP_STEPS);
-
         digitalWrite(STEP_PINS[j], HIGH);
-        delayMicroseconds(stepUs);
+        delayMicroseconds(HOME_SPEED_US[j]);
         digitalWrite(STEP_PINS[j], LOW);
-        delayMicroseconds(stepUs);
+        delayMicroseconds(HOME_SPEED_US[j]);
         stepCount++;
 
         if (millis() - start > timeout)
@@ -612,12 +613,13 @@ void setup()
     pinMode(LED_PIN, OUTPUT);
 
     // homeJoint(J1_IDX);
-
-    homeJoint(Z_IDX);
+    homeJoint(J3_IDX);
+    
+    //homeJoint(Z_IDX);
     // ── Test moves — uncomment one at a time ─────────────────────────────────
     // startMoveJoints(degToSteps(180.0f, J1_IDX), 0, 0);  // J1 only, 90 deg
-    startMove(0, 0, 0, mmToSteps(100));
-    waitForMove();
+   // startMove(0, 0, 0, mmToSteps(100));
+    //waitForMove();
 
     Serial.println("READY");
 }
