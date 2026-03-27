@@ -15,13 +15,40 @@
 
 from math import sqrt
 
+
+# ─── ROBOT SETTINGS ──────────────────────────────────────────────────────────
+OPTIMIZATION_THRESHOLD = 5e-3  # 5mm
+STEPPER_STEP_DEG = 1.8
+
+# ─── Joint 1 (Base Revolute) ─────────────────────────────────────────────────
+J1_MOTOR_TEETH  = 20
+J1_GEAR1_BIG    = 72
+J1_GEAR1_SMALL  = 40
+J1_GEAR2        = 100
+J1_HOME_ANGLE   = -80
+J1_LIMIT        = 80
+
+# ─── Joint 2 (Elbow Revolute) ────────────────────────────────────────────────
+J2_MOTOR_TEETH  = 20
+J2_GEAR1_BIG    = 50
+J2_GEAR1_SMALL  = 20
+J2_GEAR2        = 48
+J2_HOME_ANGLE   = -165
+J2_LIMIT        = 165
+
+# ─── Joint 3 (Gripper Revolute) ────────────────────────────────────────────────
+J3_MOTOR_TEETH  = 60
+J3_GEAR2        = 72
+J3_HOME_ANGLE   = -165
+J3_LIMIT        = 165
+
 # ─── BLOCK SIZE — only edit these two values ─────────────────────────────────
 BLOCK_STUDS = 2       # studs per block side (1 for 1×1, 2 for 2×2, etc.)
 STUD_PITCH  = 0.0154  # stud centre-to-centre pitch (m) — standard Duplo/Lego
 
 # ─── ARM GEOMETRY ────────────────────────────────────────────────────────────
-L1 = 0.150  # upper arm length (m)
-L2 = 0.100  # forearm length (m)
+L1 = 0.20026  # upper arm length (m)
+L2 = 0.08391  # forearm length (m)
 
 # ─── DERIVED: block centre-to-centre pitch ────────────────────────────────────
 DUPLO_PITCH = BLOCK_STUDS * STUD_PITCH  # e.g. 2 × 0.0154 = 0.0308m
@@ -95,6 +122,6 @@ MAX_LAYERS = 2  # maximum number of layers
 # ─── SERIAL ──────────────────────────────────────────────────────────────────
 DEFAULT_PORT   = "COM5"
 DEFAULT_BAUD   = 115200
-HOME_TIMEOUT   = 120
-MOVE_TIMEOUT   = 120
-REHOME_TIMEOUT = 120
+HOME_TIMEOUT   = 30
+MOVE_TIMEOUT   = 15
+REHOME_TIMEOUT = 20

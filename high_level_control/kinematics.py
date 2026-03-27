@@ -1,46 +1,79 @@
 # kinematics.py
 # ─────────────────────────────────────────────────────────────────────────────
 # Inverse kinematics and coordinate transforms for the SCARA arm.
+# Pure functions — no side effects, no I/O.
+import numpy as np
 
 from math import sqrt, acos, atan2, sin, cos, pi
-from config import L1, L2, DUPLO_PITCH, ORIGIN_X, ORIGIN_Y
+from config import (
+    L1, L2, DUPLO_PITCH, ORIGIN_X, ORIGIN_Y,
+    J1_MOTOR_TEETH, J1_GEAR1_BIG, J1_GEAR1_SMALL, J1_GEAR2, J1_HOME_ANGLE, J1_LIMIT,
+    J2_MOTOR_TEETH, J2_GEAR1_BIG, J2_GEAR1_SMALL, J2_GEAR2, J2_HOME_ANGLE, J2_LIMIT,
+    OPTIMIZATION_THRESHOLD, STEPPER_STEP_DEG
+)
 
+def calculate_deg_per_step(motor_teeth, g1_big, g1_small, g2, base_step=1.8):
+    """Calculates the degrees moved per motor step through the gear train."""
+    # Ratio = (Driving / Driven) * (Driving / Driven)
+    return base_step * (motor_teeth * g1_small) / (g1_big * g2)
 
-def ik(x: float, y: float) -> tuple[float, float, float]:
+def ik(x: float, y: float) -> tuple:
     """
-    Two-link planar inverse kinematics (elbow-up solution).
-
-    x, y : target position in metres, robot base frame.
-
-    Returns (q1_deg, q2_deg, q3_deg) where:
-      q1 = shoulder joint angle
-      q2 = elbow joint angle
-      q3 = wrist constraint = -(q1 + q2), keeps end-effector pointing down
-
-    Raises ValueError if the position is outside the reachable workspace.
+    Advanced Inverse Kinematics using discretized workspace optimization.
+    Uses constants imported directly from config.py.
     """
-    r = sqrt(x**2 + y**2)
-
-    r_max = L1 + L2
-    r_min = abs(L1 - L2)
-    if not (r_min <= r <= r_max):
-        raise ValueError(
-            f"Position ({x:.3f}, {y:.3f})m is unreachable. "
-            f"Distance r={r:.3f}m, workspace [{r_min:.3f}, {r_max:.3f}]m."
-        )
-
-    cos_q2 = (r**2 - L1**2 - L2**2) / (2 * L1 * L2)
-    cos_q2 = max(-1.0, min(1.0, cos_q2))  # clamp floating-point drift
-
-    q2 = acos(cos_q2)
-    q1 = atan2(y, x) - atan2(L2 * sin(q2), L1 + L2 * cos(q2))
-    q3 = -(q1 + q2)
-
-    return (
-        round(q1 * 180 / pi, 2),
-        round(q2 * 180 / pi, 2),
-        round(q3 * 180 / pi, 2),
+    
+    # 1. Calculate Resolution based on Gear Ratios
+    j1_res = calculate_deg_per_step(
+        J1_MOTOR_TEETH, J1_GEAR1_BIG, J1_GEAR1_SMALL, J1_GEAR2, STEPPER_STEP_DEG
     )
+    j2_res = calculate_deg_per_step(
+        J2_MOTOR_TEETH, J2_GEAR1_BIG, J2_GEAR1_SMALL, J2_GEAR2, STEPPER_STEP_DEG
+    )
+
+    # 2. Generate Reachable Workspace Grid
+    q1_range = np.arange(J1_HOME_ANGLE, J1_LIMIT + j1_res, j1_res)
+    q2_range = np.arange(J2_HOME_ANGLE, J2_LIMIT + j2_res, j2_res)
+    Q1G, Q2G = np.meshgrid(q1_range, q2_range)
+
+    # Forward Kinematics for every possible stepper position
+    # Uses L1 and L2 imported from config
+    X_work = L1 * np.cos(np.radians(Q1G)) + L2 * np.cos(np.radians(Q1G + Q2G))
+    Y_work = L1 * np.sin(np.radians(Q1G)) + L2 * np.sin(np.radians(Q1G + Q2G))
+
+    # 3. Distance Matrix Optimization
+    dist_matrix = np.sqrt((X_work - x)**2 + (Y_work - y)**2)
+    
+    # Prefer Elbow-Up (Q2 > 0)
+    pref_dist_matrix = dist_matrix.copy()
+    pref_dist_matrix[Q2G < 0] = np.inf 
+
+    idx_pref = np.argmin(pref_dist_matrix)
+    best_err = pref_dist_matrix.flat[idx_pref]
+
+    # Fallback if preferred config is mechanically unreachable
+    if best_err > OPTIMIZATION_THRESHOLD:
+        idx = np.argmin(dist_matrix)
+        best_err = dist_matrix.flat[idx] # Update error for final check
+    else:
+        idx = idx_pref
+
+    # FINAL REACHABILITY CHECK: Required for validate_positions() to work
+    if best_err > OPTIMIZATION_THRESHOLD:
+         raise ValueError(f"Target ({x:.3f}, {y:.3f}) is outside reachable step-grid.")
+
+    # 4. Extract Results
+    q1_best_deg = Q1G.flat[idx]
+    q2_best_deg = Q2G.flat[idx]
+    q3=-(q1_best_deg + q2_best_deg)  # End-effector angle to keep block level
+
+    q1 = q1_best_deg - J1_HOME_ANGLE
+    q2 = q2_best_deg - J2_HOME_ANGLE
+    print(f"IK: Target ({x:.3f}, {y:.3f}) → q1={q1:.2f}°, q2={q2:.2f}°, q3={q3:.2f}° (err={best_err:.4f}m)")
+
+    return  (q1, q2, q3)
+
+
 
 
 def grid_to_world(col: int, row: int) -> tuple[float, float]:

@@ -42,16 +42,16 @@ class RealSerial:
     """
 
     def __init__(self, port: str, baud: int, timeout: float = 10.0):
-        from firmware.test.comms import connect
+        from comms import connect
         self._ser = connect(port, baud, wait_ready=True)
         self._timeout = timeout
 
     def send(self, cmd: str, timeout: float | None = None) -> str:
-        from firmware.test.comms import send_command
+        from comms import send_command
         return send_command(self._ser, cmd, timeout=timeout or self._timeout)
 
     def close(self) -> None:
-        from firmware.test.comms import disconnect
+        from comms import disconnect
         disconnect(self._ser)
 
 
