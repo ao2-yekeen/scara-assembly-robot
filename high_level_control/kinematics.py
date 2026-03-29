@@ -68,13 +68,14 @@ def ik(x: float, y: float) -> tuple:
     x_best = X_work.flat[idx]
     y_best = Y_work.flat[idx]
 
-    # --- Q3 (J4) CALCULATION USING REACHED COORDINATES ---
-    q3_ideal = np.degrees(np.arctan2(y_best, x_best)) - q1_best_deg - q2_best_deg + 180
-    steps_j3 = round(q3_ideal / j3_res)
-
     # 4. Extract Results
     q1_best_deg = Q1G.flat[idx]
     q2_best_deg = Q2G.flat[idx]
+
+     # --- Q3 (J4) CALCULATION USING REACHED COORDINATES ---
+    q3_ideal = np.degrees(np.arctan2(y_best, x_best)) - q1_best_deg - q2_best_deg + 180
+    steps_j3 = round(q3_ideal / j3_res)
+    
     q3_best_deg = steps_j3 * j3_res
 
     q1 = q1_best_deg - J1_HOME_ANGLE
