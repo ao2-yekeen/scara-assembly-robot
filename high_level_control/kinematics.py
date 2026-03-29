@@ -61,7 +61,7 @@ def ik(x: float, y: float) -> tuple:
     j2_res = calculate_deg_per_step(
         J2_MOTOR_TEETH, J2_GEAR1_BIG, J2_GEAR1_SMALL, J2_GEAR2, STEPPER_STEP_DEG
     )
-    j3_res = STEPPER_STEP_DEG * (J3_MOTOR_TEETH / J3_GEAR2);
+    j3_res = STEPPER_STEP_DEG * (J3_MOTOR_TEETH / J3_GEAR2)
 
     # 2. Generate Reachable Workspace Grid
     q1_range = np.arange(J1_HOME_ANGLE, J1_LIMIT + j1_res, j1_res)
