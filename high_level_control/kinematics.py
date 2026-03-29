@@ -31,6 +31,7 @@ def ik(x: float, y: float) -> tuple:
     j2_res = calculate_deg_per_step(
         J2_MOTOR_TEETH, J2_GEAR1_BIG, J2_GEAR1_SMALL, J2_GEAR2, STEPPER_STEP_DEG
     )
+    j3_res = STEPPER_STEP_DEG * (J3_MotorTeeth / J3_GEAR2);
 
     # 2. Generate Reachable Workspace Grid
     q1_range = np.arange(J1_HOME_ANGLE, J1_LIMIT + j1_res, j1_res)
@@ -63,13 +64,22 @@ def ik(x: float, y: float) -> tuple:
     if best_err > OPTIMIZATION_THRESHOLD:
          raise ValueError(f"Target ({x:.3f}, {y:.3f}) is outside reachable step-grid.")
 
+    # Get the actual X/Y reached by the chosen stepper positions
+    x_best = X_work.flat[idx]
+    y_best = Y_work.flat[idx]
+
+    # --- Q3 (J4) CALCULATION USING REACHED COORDINATES ---
+    q3_ideal = np.degrees(np.arctan2(y_best, x_best)) - q1_best_deg - q2_best_deg + 180
+    steps_j3 = round(q3_ideal / j3_res)
+
     # 4. Extract Results
     q1_best_deg = Q1G.flat[idx]
     q2_best_deg = Q2G.flat[idx]
-    q3=-(q1_best_deg + q2_best_deg)  # End-effector angle to keep block level
+    q3_best_deg = steps_j3 * j3_res
 
     q1 = q1_best_deg - J1_HOME_ANGLE
     q2 = q2_best_deg - J2_HOME_ANGLE
+    q3 = q3_best_deg - (180-J3_HOME_ANGLE)
     print(f"IK: Target ({x:.3f}, {y:.3f}) → q1={q1:.2f}°, q2={q2:.2f}°, q3={q3:.2f}° (err={best_err:.4f}m)")
 
     return  (q1, q2, q3)
