@@ -47,6 +47,7 @@ def SortPositions(positions):
         KinematicsListY.append(positions[y][1])
         return (KinematicsListX,KinematicsListY,VerticalGrip)
 
+
 def ik(x: float, y: float) -> tuple:
     """
     Advanced Inverse Kinematics using discretized workspace optimization.
