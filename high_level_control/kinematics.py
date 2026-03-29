@@ -9,13 +9,14 @@ from config import (
     L1, L2, DUPLO_PITCH, ORIGIN_X, ORIGIN_Y,
     J1_MOTOR_TEETH, J1_GEAR1_BIG, J1_GEAR1_SMALL, J1_GEAR2, J1_HOME_ANGLE, J1_LIMIT,
     J2_MOTOR_TEETH, J2_GEAR1_BIG, J2_GEAR1_SMALL, J2_GEAR2, J2_HOME_ANGLE, J2_LIMIT,
-    OPTIMIZATION_THRESHOLD, STEPPER_STEP_DEG
+    J3_MOTOR_TEETH, J3_GEAR2, J3_HOME_ANGLE, J3_LIMIT, OPTIMIZATION_THRESHOLD, STEPPER_STEP_DEG
 )
 
 def calculate_deg_per_step(motor_teeth, g1_big, g1_small, g2, base_step=1.8):
     """Calculates the degrees moved per motor step through the gear train."""
     # Ratio = (Driving / Driven) * (Driving / Driven)
     return base_step * (motor_teeth * g1_small) / (g1_big * g2)
+    
 
 def ik(x: float, y: float) -> tuple:
     """
