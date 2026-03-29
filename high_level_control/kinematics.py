@@ -106,11 +106,16 @@ def ik(x: float, y: float) -> tuple:
     q3_ideal = np.degrees(np.arctan2(y_best, x_best)) - q1_best_deg - q2_best_deg + 180
     steps_j3 = round(q3_ideal / j3_res)
     
-    q3_best_deg = steps_j3 * j3_res
+    max_steps_j3 = int((J3_LIMIT*2) / j3_res)
+    min_steps_j3 = 0
+
+    steps_j3_clamped = max(min_steps_j3, min(max_steps_j3, steps_j3))
+
+    q3_best_deg = steps_j3_clamped * j3_res
 
     q1 = q1_best_deg - J1_HOME_ANGLE
     q2 = q2_best_deg - J2_HOME_ANGLE
-    q3 = q3_best_deg - (180-J3_HOME_ANGLE)
+    q3 = q3_best_deg - (180+J3_HOME_ANGLE)
     print(f"IK: Target ({x:.3f}, {y:.3f}) → q1={q1:.2f}°, q2={q2:.2f}°, q3={q3:.2f}° (err={best_err:.4f}m)")
 
     return  (q1, q2, q3)

@@ -19,10 +19,13 @@ class TestIK(unittest.TestCase):
         y_values = [0.05, -0.2, 0.15, 0.20]
         expected_q1 = [74.8,  14.2,  143.8,  121.4]
         expected_q2 = [296.1, 62.7,  301.8,  250.2]
+        expected_q3 = [57.0, 243.0, 51.0, 102.0]
+        
         for x in x_values:
             q1, q2, q3 = ik(x, y_values[x_values.index(x)])
             self.assertAlmostEqual(q1, expected_q1[x_values.index(x)], places=1)
             self.assertAlmostEqual(q2, expected_q2[x_values.index(x)], places=1)
+            self.assertAlmostEqual(q3, expected_q3[x_values.index(x)], places=1)
   
 
 
