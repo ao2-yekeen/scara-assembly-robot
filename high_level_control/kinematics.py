@@ -12,11 +12,40 @@ from config import (
     J3_MOTOR_TEETH, J3_GEAR2, J3_HOME_ANGLE, J3_LIMIT, OPTIMIZATION_THRESHOLD, STEPPER_STEP_DEG
 )
 
+
 def calculate_deg_per_step(motor_teeth, g1_big, g1_small, g2, base_step=1.8):
     """Calculates the degrees moved per motor step through the gear train."""
     # Ratio = (Driving / Driven) * (Driving / Driven)
     return base_step * (motor_teeth * g1_small) / (g1_big * g2)
-    
+
+def SortPositions(positions):
+    KinematicsListX = []
+    KinematicsListY = []
+    VerticalGrip = []
+    for x in range(len(positions)):# Defining Corners
+        CurrentPosition = positions[x]
+        SecondCheck = False
+        FirstCheck = False
+        print(CurrentPosition);
+        for y in range(len(positions)):
+            if CurrentPosition[1] == (positions[y][1]-1) and CurrentPosition[0] == (positions[y][0]):
+                FirstCheck = True
+            if CurrentPosition[1] == (positions[y][1]) and CurrentPosition[0] == (positions[y][0]-1):
+                SecondCheck = True
+            if FirstCheck and SecondCheck:
+                VerticalGrip.append(False);
+                KinematicsListX.append(positions[y][0])
+                KinematicsListY.append(positions[y][1])
+                FirstCheck = False
+                SecondCheck = False
+        for y in range(len(positions)):
+            if CurrentPosition[1] == (positions[y][1]-1) and CurrentPosition[0] == (positions[y][0]):
+                Vertical = True
+        if Vertical:
+            VerticalGrip.append(True)
+        KinematicsListX.append(positions[y][0])
+        KinematicsListY.append(positions[y][1])
+        return (KinematicsListX,KinematicsListY,VerticalGrip)
 
 def ik(x: float, y: float) -> tuple:
     """
@@ -31,7 +60,7 @@ def ik(x: float, y: float) -> tuple:
     j2_res = calculate_deg_per_step(
         J2_MOTOR_TEETH, J2_GEAR1_BIG, J2_GEAR1_SMALL, J2_GEAR2, STEPPER_STEP_DEG
     )
-    j3_res = STEPPER_STEP_DEG * (J3_MotorTeeth / J3_GEAR2);
+    j3_res = STEPPER_STEP_DEG * (J3_MOTOR_TEETH / J3_GEAR2);
 
     # 2. Generate Reachable Workspace Grid
     q1_range = np.arange(J1_HOME_ANGLE, J1_LIMIT + j1_res, j1_res)
@@ -107,11 +136,12 @@ def validate_positions(positions: list[tuple[int, int]]) -> tuple[list, list]:
       invalid — list of (col, row, reason_str) that fail IK
     """
     valid, invalid = [], []
-    for col, row in positions:
-        x, y = grid_to_world(col, row)
+    SortCol, SortRow, VerticalGrip = SortPositions(positions)
+    for x in range(len(SortCol)):
+        x, y = grid_to_world(SortCol[x], SortRow[x])
         try:
             ik(x, y)
-            valid.append((col, row))
+            valid.append((SortCol, SortRow))
         except ValueError as e:
             invalid.append((col, row, str(e)))
     return valid, invalid
