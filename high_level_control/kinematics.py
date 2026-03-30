@@ -11,6 +11,9 @@ from config import (
     J2_MOTOR_TEETH, J2_GEAR1_BIG, J2_GEAR1_SMALL, J2_GEAR2, J2_HOME_ANGLE, J2_LIMIT,
     J3_MOTOR_TEETH, J3_GEAR2, J3_HOME_ANGLE, J3_LIMIT, OPTIMIZATION_THRESHOLD, STEPPER_STEP_DEG
 )
+KinematicsListX = []
+KinematicsListY = []
+VerticalGrip = []
 
 
 def calculate_deg_per_step(motor_teeth, g1_big, g1_small, g2, base_step=1.8):
@@ -47,6 +50,24 @@ def SortPositions(positions):
         KinematicsListY.append(positions[y][1])
         return (KinematicsListX,KinematicsListY,VerticalGrip)
 
+def SortPositions(positions):
+    for y in range(5):  # Defining Corners
+        for x in range(5):
+            if positions[x][y] == 1:
+                if positions[x - 1][y] == 1 and MovementMatrix[x][y - 1] == 1:
+                    VerticalGrip.append(False);
+                    KinematicsListX.append(x)
+                    KinematicsListY.append(y)
+    for y in range(5):
+        for x in range(5):
+            if positions[x][y] == 1:
+                if positions[x][y - 1] == 1:
+                    VerticalGrip.append(True);
+                else:
+                    VerticalGrip.append(False);
+                KinematicsListX.append(x)
+                KinematicsListY.append(y)
+    return (KinematicsListX, KinematicsListY,VerticalGrip)
 
 def ik(x: float, y: float) -> tuple:
     """
@@ -61,7 +82,7 @@ def ik(x: float, y: float) -> tuple:
     j2_res = calculate_deg_per_step(
         J2_MOTOR_TEETH, J2_GEAR1_BIG, J2_GEAR1_SMALL, J2_GEAR2, STEPPER_STEP_DEG
     )
-    j3_res = STEPPER_STEP_DEG * (J3_MOTOR_TEETH / J3_GEAR2)
+    j3_res = STEPPER_STEP_DEG * (J3_MotorTeeth / J3_GEAR2);
 
     # 2. Generate Reachable Workspace Grid
     q1_range = np.arange(J1_HOME_ANGLE, J1_LIMIT + j1_res, j1_res)
@@ -106,16 +127,11 @@ def ik(x: float, y: float) -> tuple:
     q3_ideal = np.degrees(np.arctan2(y_best, x_best)) - q1_best_deg - q2_best_deg + 180
     steps_j3 = round(q3_ideal / j3_res)
     
-    max_steps_j3 = int((J3_LIMIT*2) / j3_res)
-    min_steps_j3 = 0
-
-    steps_j3_clamped = max(min_steps_j3, min(max_steps_j3, steps_j3))
-
-    q3_best_deg = steps_j3_clamped * j3_res
+    q3_best_deg = steps_j3 * j3_res
 
     q1 = q1_best_deg - J1_HOME_ANGLE
     q2 = q2_best_deg - J2_HOME_ANGLE
-    q3 = q3_best_deg - (180+J3_HOME_ANGLE)
+    q3 = q3_best_deg - (180-J3_HOME_ANGLE)
     print(f"IK: Target ({x:.3f}, {y:.3f}) → q1={q1:.2f}°, q2={q2:.2f}°, q3={q3:.2f}° (err={best_err:.4f}m)")
 
     return  (q1, q2, q3)
