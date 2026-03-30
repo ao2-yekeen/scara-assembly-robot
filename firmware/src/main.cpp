@@ -22,7 +22,7 @@ struct JointConfig
 //
 //           step  dir  lim  int   steps/unit  min     max    homeUs  linear
 const JointConfig JOINTS[] = {
-    /* J1 */ {2, 3, 21, 5, 1800.0f / 360.0f, 0.0f, 160.0f, 900, false},
+    /* J1 */ {2, 3, 21, 5, 1800.0f / 360.0f, 0.0f, 160.0f, 2000, false},
     /* J2 */ {4, 5, 18, 4, 400.0f / 360.0f, 0.0f, 330.0f, 5000, false},
     /* J3 */ {6, 7, 19, 3, 200.0f / 360.0f, 0.0f, 330.0f, 5000, false},
     /* Z  */ {8, 9, 20, 2, 25.0f, 0.0f, 300.0f, 800, true},
@@ -36,8 +36,8 @@ const uint8_t Z_IDX = 3;
 
 // ─── OTHER CONFIG ─────────────────────────────────────────────────────────────
 const uint8_t GRIPPER_PIN = 10;
-const uint8_t SERVO_OPEN_ANGLE = 180;
-const uint8_t SERVO_CLOSE_ANGLE = 60;
+const uint8_t SERVO_OPEN_ANGLE = 40;
+const uint8_t SERVO_CLOSE_ANGLE = 100;
 const uint8_t LED_PIN = 13;
 
 const float DEFAULT_MAX_SPEED = 1200.0f;
@@ -138,6 +138,8 @@ bool validateMoveArgs(float j1, float j2, float j3, float z);
 //  STATUS               → STATUS:IDLE | STATUS:RUNNING
 //  (boot)               → READY
 
+
+
 // ─── TIMER 5 ISR ─────────────────────────────────────────────────────────────
 ISR(TIMER5_COMPA_vect)
 {
@@ -203,6 +205,52 @@ ISR(TIMER5_COMPA_vect)
         motionRunning = false;
         stopTimer5();
     }
+}
+
+// ─── SERVO ISR — Timer 4 two-state ───────────────────────────────────────────
+volatile uint16_t servoTargetPulseUs = 1500;
+volatile bool     servoPulseHigh     = false;
+static   uint8_t  servoCurrentAngle  = 90;
+
+ISR(TIMER4_COMPA_vect)
+{
+    if (!servoPulseHigh)
+    {
+        // Start of pulse — pull HIGH, set timer to pulse width
+        digitalWrite(GRIPPER_PIN, HIGH);
+        OCR4A         = servoTargetPulseUs * 2;  // ticks at 0.5µs each (prescaler 8)
+        servoPulseHigh = true;
+    }
+    else
+    {
+        // End of pulse — pull LOW, reset timer for 20ms period
+        digitalWrite(GRIPPER_PIN, LOW);
+        OCR4A          = 40000 - servoTargetPulseUs * 2;  // remainder of 20ms
+        servoPulseHigh = false;
+    }
+}
+
+void setupTimer4()
+{
+    TCCR4A = 0;
+    TCCR4B = 0;
+    TCNT4  = 0;
+
+    // CTC mode, prescaler 8
+    // 16MHz / 8 = 2MHz → 0.5µs per tick
+    // 20ms = 40000 ticks total
+    // Split: pulse ticks HIGH + (40000 - pulse ticks) LOW
+    TCCR4B |= (1 << WGM12) | (1 << CS41);
+    OCR4A   = 40000 - servoTargetPulseUs * 2;  // start with LOW phase
+    TIMSK4 |= (1 << OCIE4A);
+    sei();
+}
+
+void stopTimer4()
+{
+    TIMSK4 &= ~(1 << OCIE4A);
+    TCCR4B  = 0;
+    digitalWrite(GRIPPER_PIN, LOW);
 }
 
 // ─── TIMER 5 ─────────────────────────────────────────────────────────────────
@@ -411,22 +459,47 @@ void rehomeZ(long layerZsteps)
 }
 
 // ─── GRIPPER ─────────────────────────────────────────────────────────────────
-void servoWriteAngle(uint8_t angle)
-{
-    uint16_t pulseUs = 500 + (uint16_t)((uint32_t)angle * 2000 / 180);
-    for (uint8_t i = 0; i < 30; i++)
-    {
-        digitalWrite(GRIPPER_PIN, HIGH);
-        delayMicroseconds(pulseUs);
-        digitalWrite(GRIPPER_PIN, LOW);
-        delayMicroseconds(20000 - pulseUs);
-    }
-}
 
+
+void servoWriteAngle(uint8_t targetAngle)
+{
+    uint8_t degsPerSec = 60;
+    targetAngle = constrain(targetAngle, 0, 180);
+
+    // Stop the hold-ISR so it doesn't conflict with manual bit-bang below
+    stopTimer4();
+
+    // How many 20ms frames to wait between each degree step
+    uint8_t framesPerDeg = (1000 / degsPerSec) / 20;
+    if (framesPerDeg < 1) framesPerDeg = 1;
+
+    int8_t dir = (targetAngle > servoCurrentAngle) ? 1 : -1;
+
+    while (servoCurrentAngle != targetAngle)
+    {
+        servoCurrentAngle += dir;
+        uint16_t pulseUs = 500 + (uint16_t)((uint32_t)servoCurrentAngle * 2000 / 180);
+
+        // Send framesPerDeg pulses at this angle before moving to next degree
+        for (uint8_t f = 0; f < framesPerDeg; f++)
+        {
+            digitalWrite(GRIPPER_PIN, HIGH);
+            delayMicroseconds(pulseUs);
+            digitalWrite(GRIPPER_PIN, LOW);
+            delay(20);
+        }
+    }
+
+    // Update ISR target and restart Timer 4 to hold the position indefinitely
+    servoTargetPulseUs = 500 + (uint16_t)((uint32_t)servoCurrentAngle * 2000 / 180);
+    setupTimer4();
+}
 void servoInit()
 {
     pinMode(GRIPPER_PIN, OUTPUT);
     digitalWrite(GRIPPER_PIN, LOW);
+    servoCurrentAngle  = 90;
+    servoTargetPulseUs = 500 + (uint16_t)((uint32_t)servoCurrentAngle * 2000 / 180);
 }
 
 void gripperOpen() { servoWriteAngle(SERVO_OPEN_ANGLE); }
@@ -611,7 +684,12 @@ void setup()
 
     servoInit();
 
-    homeJoint(J3_IDX);
+ 
+gripperOpen();
+// delay(100);
+gripperClose();
+   // homeAll();
+    //homeJoint(J3_IDX);
 
     Serial.println("READY");
 }
@@ -619,7 +697,7 @@ void setup()
 // ─── MAIN LOOP ───────────────────────────────────────────────────────────────
 void loop()
 {
-
+   
 #if DEMO_MODE == 0
     startMove(degToSteps(90, J1_IDX), degToSteps(90, J2_IDX),
               degToSteps(90, J3_IDX), mmToSteps(90));
