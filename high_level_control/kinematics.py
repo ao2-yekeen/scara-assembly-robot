@@ -29,14 +29,14 @@ def SortPositions(positions):
         CurrentPosition = positions[x]
         SecondCheck = False
         FirstCheck = False
-        print(CurrentPosition);
+        print(CurrentPosition)
         for y in range(len(positions)):
             if CurrentPosition[1] == (positions[y][1]-1) and CurrentPosition[0] == (positions[y][0]):
                 FirstCheck = True
             if CurrentPosition[1] == (positions[y][1]) and CurrentPosition[0] == (positions[y][0]-1):
                 SecondCheck = True
             if FirstCheck and SecondCheck:
-                VerticalGrip.append(False);
+                VerticalGrip.append(False)
                 KinematicsListX.append(positions[y][0])
                 KinematicsListY.append(positions[y][1])
                 FirstCheck = False
@@ -50,24 +50,6 @@ def SortPositions(positions):
         KinematicsListY.append(positions[y][1])
         return (KinematicsListX,KinematicsListY,VerticalGrip)
 
-def SortPositions(positions):
-    for y in range(5):  # Defining Corners
-        for x in range(5):
-            if positions[x][y] == 1:
-                if positions[x - 1][y] == 1 and MovementMatrix[x][y - 1] == 1:
-                    VerticalGrip.append(False);
-                    KinematicsListX.append(x)
-                    KinematicsListY.append(y)
-    for y in range(5):
-        for x in range(5):
-            if positions[x][y] == 1:
-                if positions[x][y - 1] == 1:
-                    VerticalGrip.append(True);
-                else:
-                    VerticalGrip.append(False);
-                KinematicsListX.append(x)
-                KinematicsListY.append(y)
-    return (KinematicsListX, KinematicsListY,VerticalGrip)
 
 def ik(x: float, y: float) -> tuple:
     """
@@ -82,7 +64,7 @@ def ik(x: float, y: float) -> tuple:
     j2_res = calculate_deg_per_step(
         J2_MOTOR_TEETH, J2_GEAR1_BIG, J2_GEAR1_SMALL, J2_GEAR2, STEPPER_STEP_DEG
     )
-    j3_res = STEPPER_STEP_DEG * (J3_MotorTeeth / J3_GEAR2);
+    j3_res = STEPPER_STEP_DEG * (J3_MOTOR_TEETH / J3_GEAR2)
 
     # 2. Generate Reachable Workspace Grid
     q1_range = np.arange(J1_HOME_ANGLE, J1_LIMIT + j1_res, j1_res)
@@ -165,5 +147,5 @@ def validate_positions(positions: list[tuple[int, int]]) -> tuple[list, list]:
             ik(x, y)
             valid.append((SortCol, SortRow))
         except ValueError as e:
-            invalid.append((col, row, str(e)))
+            invalid.append((SortCol, SortRow, str(e)))
     return valid, invalid
