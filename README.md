@@ -6,7 +6,7 @@ _4-DOF SCARA-based robotic system for autonomous block assembly, developed at He
 
 ## Demo
 
-https://github.com/user-attachments/assets/32fc53ce-50c1-42bb-bb6f-93738e63dba6
+[![▶ Watch Demo on Google Drive](https://img.shields.io/badge/Watch%20Demo-%E2%96%B6%20Google%20Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/file/d/1bch_skkfbKCsSWpbhE6QLBJJI1j0O4o6/view?usp=sharing)
 
 ---
 
