@@ -4,6 +4,12 @@ _4-DOF SCARA-based robotic system for autonomous block assembly, developed at He
 
 ---
 
+## Demo
+
+https://github.com/user-attachments/assets/32fc53ce-50c1-42bb-bb6f-93738e63dba6
+
+---
+
 ## Project Overview
 
 This project implements a fully autonomous assembly robot built around a 4-degree-of-freedom SCARA (Selective Compliance Articulated Robot Arm) architecture. The system accepts user-defined grid layout files and autonomously executes the corresponding block placement sequence, handling all motion planning, sequencing logic, and microcontroller communication without manual intervention.
@@ -115,11 +121,3 @@ Open `firmware/main/main.ino` in the Arduino IDE, select the correct board and p
 
 **Heriot-Watt University** — Robotics Engineering Project
 Academic Year 2025–2026
-
-
-
-
-https://github.com/user-attachments/assets/32fc53ce-50c1-42bb-bb6f-93738e63dba6
-
-
-
