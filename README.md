@@ -115,3 +115,11 @@ Open `firmware/main/main.ino` in the Arduino IDE, select the correct board and p
 
 **Heriot-Watt University** — Robotics Engineering Project
 Academic Year 2025–2026
+
+
+
+
+https://github.com/user-attachments/assets/32fc53ce-50c1-42bb-bb6f-93738e63dba6
+
+
+
