@@ -16,12 +16,6 @@ This project implements a fully autonomous assembly robot built around a 4-degre
 
 The project was developed as part of a robotics engineering programme at Heriot-Watt University and spans embedded firmware, high-level software control, electronics design, and kinematic simulation.
 
-**Team contributions:**
-
-- **High-level Python software framework** (motion sequencing, grid parsing, serial communication) — primary author
-- **Arduino/C++ firmware** (motor control, sensor interfacing, serial protocol) — primary author
-- **Inverse kinematics solver** — developed by teammate
-
 ---
 
 ## System Architecture
