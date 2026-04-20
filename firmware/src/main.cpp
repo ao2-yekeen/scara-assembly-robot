@@ -23,9 +23,9 @@ struct JointConfig
 //
 //           step  dir  lim  int   steps/unit  min     max    homeUs  linear
 const JointConfig JOINTS[] = {
-    /* J1 */ {2, 3, 21, 5, 1800.0f / 360.0f, 0.0f, 160.0f, 5000, false},
-    /* J2 */ {4, 5, 18, 4, 400.0f / 360.0f, 0.0f, 330.0f, 5000, false},
-    /* J3 */ {6, 7, 19, 3, 200.0f / 360.0f, 0.0f, 330.0f, 5000, false},
+    /* J1 */ {2, 3, 21, 5, 1950.0f / 360.0f, 0.0f, 160.0f, 5000, false},
+    /* J2 */ {4, 5, 18, 4, 1200.0f / 360.0f, 0.0f, 330.0f, 5000, false},
+    /* J3 */ {6, 7, 19, 3, 245.0f / 360.0f, 0.0f, 330.0f, 5000, false},
     /* Z  */ {8, 9, 20, 2, 25.0f, 0.0f, 300.0f, 800, true},
 };
 
@@ -41,9 +41,9 @@ const uint8_t SERVO_OPEN_ANGLE = 40;
 const uint8_t SERVO_CLOSE_ANGLE = 100;
 const uint8_t LED_PIN = 13;
 
-const float DEFAULT_MAX_SPEED = 1200.0f;
+const float DEFAULT_MAX_SPEED = 900.0f;
 const float DEFAULT_ACCEL = 400.0f;
-const float MIN_SPEED = 80.0f;
+const float MIN_SPEED = 40.0f;
 const unsigned long SELFTEST_BLINK_MS = 150;
 
 // ── BRESENHAM TOGGLE ─────────────────────────────────────────────────────────
@@ -273,21 +273,8 @@ void stopTimer5()
 // ─── ROTATIONAL JOINTS MOVE ───────────────────────────────────────────────────
 void startMoveJoints(long tJ1, long tJ2, long tJ3)
 {
-    // Shortest-path angle wrapping for rotational joints
-    auto wrapTarget = [&](long target, long current, uint8_t j) -> long
-    {
-        float degDelta = (float)(target - current) / JOINTS[j].stepsPerUnit;
-        long delta = target - current;
-        if (degDelta > 180.0f)
-            delta -= (long)(360.0f * JOINTS[j].stepsPerUnit);
-        if (degDelta < -180.0f)
-            delta += (long)(360.0f * JOINTS[j].stepsPerUnit);
-        return current + delta;
-    };
-
-    tJ1 = wrapTarget(tJ1, jointPos[J1_IDX], J1_IDX);
-    tJ2 = wrapTarget(tJ2, jointPos[J2_IDX], J2_IDX);
-    tJ3 = wrapTarget(tJ3, jointPos[J3_IDX], J3_IDX);
+    // No angle wrapping — SCARA joints have hard mechanical stops and cannot
+    // rotate continuously. Targets are absolute step counts from home.
 
     long d[4];
     d[J1_IDX] = labs(tJ1 - jointPos[J1_IDX]);
@@ -698,7 +685,7 @@ void setup()
 // ─── MAIN LOOP ───────────────────────────────────────────────────────────────
 void loop()
 {
-
+//startMove(0,degToSteps(165, J2_IDX),0,0);
 #if DEMO_MODE == 0
     startMove(degToSteps(90, J1_IDX), degToSteps(90, J2_IDX),
               degToSteps(90, J3_IDX), mmToSteps(90));

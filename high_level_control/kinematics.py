@@ -1,7 +1,6 @@
 # kinematics.py
 # ─────────────────────────────────────────────────────────────────────────────
 # Inverse kinematics and coordinate transforms for the SCARA arm.
-# Pure functions — no side effects, no I/O.
 import numpy as np
 
 from math import sqrt, acos, atan2, sin, cos, pi
@@ -133,7 +132,7 @@ def ik(x: float, y: float) -> tuple:
     if relative_q3 < 0:
         relative_q3 = relative_q3 + 180
         
-    if relative_q3 > -(J3_HOME_ANGLE) * 2:
+    if relative_q3 > (-J3_HOME_ANGLE)+J3_LIMIT:
         relative_q3 = relative_q3 - 180
 
     q1 = q1_best_deg - J1_HOME_ANGLE
@@ -142,76 +141,6 @@ def ik(x: float, y: float) -> tuple:
     print(f"IK: Target ({x:.3f}, {y:.3f}) → q1={q1:.2f}°, q2={q2:.2f}°, q3={q3:.2f}° (err={best_err:.4f}m)")
 
     return  (q1, q2, q3)
-
-# def ik(x: float, y: float) -> tuple:
-#     """
-#     Advanced Inverse Kinematics using discretized workspace optimization.
-#     Uses constants imported directly from config.py.
-#     """
-    
-#     # 1. Calculate Resolution based on Gear Ratios
-#     j1_res = calculate_deg_per_step(
-#         J1_MOTOR_TEETH, J1_GEAR1_BIG, J1_GEAR1_SMALL, J1_GEAR2, STEPPER_STEP_DEG
-#     )
-#     j2_res = calculate_deg_per_step(
-#         J2_MOTOR_TEETH, J2_GEAR1_BIG, J2_GEAR1_SMALL, J2_GEAR2, STEPPER_STEP_DEG
-#     )
-#     j3_res = STEPPER_STEP_DEG * (J3_MOTOR_TEETH / J3_GEAR2)
-
-#     # 2. Generate Reachable Workspace Grid
-#     q1_range = np.arange(J1_HOME_ANGLE, J1_LIMIT + j1_res, j1_res)
-#     q2_range = np.arange(J2_HOME_ANGLE, J2_LIMIT + j2_res, j2_res)
-#     Q1G, Q2G = np.meshgrid(q1_range, q2_range)
-
-#     # Forward Kinematics for every possible stepper position
-#     # Uses L1 and L2 imported from config
-#     X_work = L1 * np.cos(np.radians(Q1G)) + L2 * np.cos(np.radians(Q1G + Q2G))
-#     Y_work = L1 * np.sin(np.radians(Q1G)) + L2 * np.sin(np.radians(Q1G + Q2G))
-
-#     # 3. Distance Matrix Optimization
-#     dist_matrix = np.sqrt((X_work - x)**2 + (Y_work - y)**2)
-    
-#     # Prefer Elbow-Up (Q2 > 0)
-#     pref_dist_matrix = dist_matrix.copy()
-#     pref_dist_matrix[Q2G < 0] = np.inf 
-
-#     idx_pref = np.argmin(pref_dist_matrix)
-#     best_err = pref_dist_matrix.flat[idx_pref]
-
-#     # Fallback if preferred config is mechanically unreachable
-#     if best_err > OPTIMIZATION_THRESHOLD:
-#         idx = np.argmin(dist_matrix)
-#         best_err = dist_matrix.flat[idx] # Update error for final check
-#     else:
-#         idx = idx_pref
-
-#     # FINAL REACHABILITY CHECK: Required for validate_positions() to work
-#     if best_err > OPTIMIZATION_THRESHOLD:
-#          raise ValueError(f"Target ({x:.3f}, {y:.3f}) is outside reachable step-grid.")
-
-#     # Get the actual X/Y reached by the chosen stepper positions
-#     x_best = X_work.flat[idx]
-#     y_best = Y_work.flat[idx]
-
-#     # 4. Extract Results
-#     q1_best_deg = Q1G.flat[idx]
-#     q2_best_deg = Q2G.flat[idx]
-
-#      # --- Q3 (J4) CALCULATION USING REACHED COORDINATES ---
-#     q3_ideal = np.degrees(np.arctan2(y_best, x_best)) - q1_best_deg - q2_best_deg + 180
-#     steps_j3 = round(q3_ideal / j3_res)
-    
-#     q3_best_deg = steps_j3 * j3_res
-
-#     q1 = q1_best_deg - J1_HOME_ANGLE
-#     q2 = q2_best_deg - J2_HOME_ANGLE
-#     q3 = q3_best_deg - (180-J3_HOME_ANGLE)
-#     print(f"IK: Target ({x:.3f}, {y:.3f}) → q1={q1:.2f}°, q2={q2:.2f}°, q3={q3:.2f}° (err={best_err:.4f}m)")
-
-#     return  (q1, q2, q3)
-
-
-
 
 def grid_to_world(col: int, row: int) -> tuple[float, float]:
     """
