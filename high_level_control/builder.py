@@ -4,12 +4,23 @@
 # Translates grid positions into robot motion commands and executes them.
 
 from config import (
-    SUPPLY_X, SUPPLY_Y,
     Z_CLEARANCE, Z_PICK, Z_PLACE,
     DUPLO_H_MM, MOVE_TIMEOUT,
+    PICKUP_POSITIONS, PLACE_POSITIONS, ZONE_COLS,
 )
-from kinematics import ik, grid_to_world
+from kinematics import ik
 from display import ok, fail, info
+
+_JOINT_LIMITS = [(0.0, 160.0, "J1"), (0.0, 330.0, "J2"), (0.0, 330.0, "J3")]
+
+
+def _check_ik(q1: float, q2: float, q3: float, label: str) -> bool:
+    """Return False and log an error if any joint angle is outside Arduino limits."""
+    for val, lo, hi, name in zip((q1, q2, q3), *zip(*_JOINT_LIMITS)):
+        if val < lo or val > hi:
+            fail(f"{label}: {name}={val:.2f}° outside [{lo:.0f}, {hi:.0f}]")
+            return False
+    return True
 
 
 def _build_pick_place_sequence(
@@ -48,30 +59,39 @@ def _execute_sequence(ser, sequence: list[tuple[str, str, str]], dry_run: bool) 
     return True
 
 
-def place_layer(ser, positions: list[tuple[int, int]], layer: int, dry_run: bool) -> bool:
+def run_pickup_place(ser, positions: list[tuple[int, int]], layer: int, dry_run: bool) -> bool:
     """
-    Execute one complete layer of block placements.
+    Execute pick-and-place for the given floor-plan positions.
 
-    Sorts positions nearest-first to minimise arm travel.
+    For each (col, row) in positions:
+      - place target  → PLACE_POSITIONS[row * ZONE_COLS + col]
+      - supply pick   → PICKUP_POSITIONS cycled in order
+
     Returns True if all placements succeed, False if any step fails.
     """
     z_layer = Z_PLACE + layer * DUPLO_H_MM
 
-    q1s, q2s, q3s = ik(SUPPLY_X, SUPPLY_Y)
+    for i, (col, row) in enumerate(positions):
+        place_idx = row * ZONE_COLS + col
+        if place_idx >= len(PLACE_POSITIONS):
+            fail(f"grid({col},{row}) → index {place_idx} out of range for PLACE_POSITIONS")
+            return False
 
-    sorted_positions = sorted(
-        positions,
-        key=lambda p: sum(v**2 for v in grid_to_world(*p)),
-    )
+        sx, sy = PICKUP_POSITIONS[i % len(PICKUP_POSITIONS)]
+        px, py = PLACE_POSITIONS[place_idx]
 
-    for index, (col, row) in enumerate(sorted_positions):
-        wx, wy = grid_to_world(col, row)
-        q1p, q2p, q3p = ik(wx, wy)
+        q1s, q2s, q3s = ik(sx, sy)
+        if not _check_ik(q1s, q2s, q3s, f"pick({sx:.4f},{sy:.4f})"):
+            return False
+
+        q1p, q2p, q3p = ik(px, py)
+        if not _check_ik(q1p, q2p, q3p, f"place({px:.4f},{py:.4f})"):
+            return False
 
         info(
-            f"Block {index + 1}/{len(sorted_positions)}  "
-            f"grid({col},{row})  ({wx:.3f},{wy:.3f})m  "
-            f"J1={q1p}°  J2={q2p}°"
+            f"Block {i + 1}/{len(positions)}  "
+            f"grid({col},{row})  pick({sx:.4f},{sy:.4f})  place({px:.4f},{py:.4f})  "
+            f"J1={q1p:.2f}°  J2={q2p:.2f}°"
         )
 
         sequence = _build_pick_place_sequence(

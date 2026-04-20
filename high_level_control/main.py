@@ -20,7 +20,7 @@ from display import print_grid
 from kinematics import validate_positions
 from editor import run_editor
 from serial_comms import make_serial
-from builder import place_layer
+from builder import run_pickup_place
 
 
 def _parse_args() -> argparse.Namespace:
@@ -35,6 +35,8 @@ def _parse_args() -> argparse.Namespace:
                         help="Number of layers to build (1 or 2)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Simulate all serial commands — no Arduino required")
+    parser.add_argument("--zones", action="store_true",
+                        help="Use measured pickup/place zone positions instead of grid editor")
     return parser.parse_args()
 
 
@@ -91,7 +93,6 @@ def main() -> None:
     if not positions:
         fail("No blocks selected — exiting.")
         sys.exit(1)
-
     _validate(positions)
 
     try:
@@ -111,8 +112,11 @@ def main() -> None:
             if not _rehome_z(ser, layer, args.dry_run):
                 break
 
-        if place_layer(ser, positions, layer, args.dry_run):
-            total_placed += len(positions)
+        success = run_pickup_place(ser, positions, layer, args.dry_run)
+        n = len(positions)
+
+        if success:
+            total_placed += n
             ok(f"Layer {layer + 1} complete")
         else:
             fail(f"Layer {layer + 1} aborted")
