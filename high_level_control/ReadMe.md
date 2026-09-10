@@ -1,157 +1,59 @@
-# SCARA Duplo Floor‑Plan Builder
+# SCARA floor-plan controller
 
-## **Overview**
-This project controls a 2‑DOF SCARA robot to automatically build multi‑layer DUPLO floor‑plan layouts.  
-The robot picks blocks from a supply position and places them onto a grid‑based workspace, following preset or custom house‑shaped patterns.
+Python control for a SCARA assembly system with two planar arm joints, wrist rotation and vertical motion.
 
-The system supports:
+## Offline quick start
 
-- Automatic inverse kinematics  
-- Workspace validation  
-- Multi‑layer construction  
-- Dry‑run simulation (no hardware movement)  
-- Real hardware execution via serial commands  
+Requires Python 3.10 or newer. From the repository root:
 
----
-
-## **How It Works**
-When the program starts, it:
-
-1. Computes the reachable grid based on robot arm lengths and DUPLO block pitch.  
-2. Displays a menu of preset house shapes (Studio, L‑shape, T‑shape, etc.).  
-3. Lets the user toggle cells to customize the layout.  
-4. Validates that every chosen grid cell is reachable.  
-5. Homes the robot.  
-6. Builds the structure layer by layer.
-
-Each block placement consists of:
-
-- Move to supply  
-- Lower  
-- Grip  
-- Lift  
-- Move to target  
-- Lower  
-- Release  
-- Retract  
-
-All robot motions are printed to the console.  
-In **dry‑run mode**, no physical movement occurs — commands are only simulated.
-
----
-
-## **Running the Program**
-
-### **Dry‑run (simulation only)**
-```
-python3 main.py --port COM5 --dry-run
+```bash
+cd high_level_control
+python3 main.py --floor example_floor_plan.txt --dry-run --layers 1
 ```
 
-### **Real robot**
-```
-python3 main.py --port COM5
-```
+This rehearses two block placements using simulated serial acknowledgements. It does not connect to the robot or validate real motion.
 
-The `--port` argument specifies the serial port connected to the SCARA controller.
+## Floor-plan format
 
----
+Use space-separated zeros and ones. Each line is a row; a one selects a block:
 
-## **Grid System**
-The workspace is a rectangular grid automatically sized from:
-
-- `BLOCK_STUDS` — number of studs per block side  
-- `STUD_PITCH` — stud‑to‑stud spacing (15.4 mm)  
-- `L1`, `L2` — robot arm lengths  
-
-Example from the run:
-
-```
-Grid 3×5 | Max 2 layers
+```text
+1 0
+0 1
 ```
 
-Each grid cell corresponds to the **center of one DUPLO block**.
+Use the supplied example_floor_plan.txt for a nonempty example. The parser looks for individual tokens equal to 1, so write spaces between values. Grid dimensions depend on config.py; keep selected cells within the configured workspace.
 
-Coordinates are shown as `(row, col)` and converted to robot‑frame `(x, y)` positions.
+## Command-line options
 
----
+| Option | Behaviour |
+| --- | --- |
+| --floor PATH | Load a file instead of opening the editor |
+| --dry-run | Use simulated serial acknowledgements |
+| --layers 1 or --layers 2 | Select the number of layers; default is 2 |
+| --port PORT | Hardware serial port; default COM5 |
+| --baud RATE | Baud rate; default 115200 |
+| --help | Print CLI help |
 
-## **Layering**
-The robot supports multi‑layer construction.
+The CLI also accepts --zones, but main.py does not currently use that argument to select a different execution path.
 
-- Layer 1 is placed at table height.  
-- Before Layer 2, the robot re‑homes Z to the DUPLO brick height (19.2 mm).  
-- Each subsequent layer is offset by the same height.
+Without --floor, the editor offers presets and accepts row,col cell toggles. Press Enter on an empty line to confirm.
 
-Example from the log:
+## Execution flow
 
-```
-[DRY] REHOME_Z:19.20 → OK
-```
+The controller validates selected target positions, opens the selected serial interface and homes the axes. It then runs the pickup/place sequence for each layer. For the second layer it sends REHOME_Z with the configured brick height.
 
-This ensures the gripper approaches the top of the previous layer safely.
+Commands include HOME, MOVE:j1,j2,j3,z, GRIP, RELEASE and REHOME_Z:h. Dry-run responses are generated locally by serial_comms.py.
 
----
+## Physical operation
 
-## **Example Build: T‑Shaped House**
-The user selected:
+Install pyserial, check the robot-specific values in config.py, and select the controller port:
 
-```
-T-shaped house
-```
-
-The program displayed the grid, counted blocks, and confirmed reachability:
-
-```
-12 block(s) per layer | 24 total (×2 layers)
-OK All positions reachable
+```bash
+python3 -m pip install pyserial
+python3 main.py --floor example_floor_plan.txt --port COM5 --layers 1
 ```
 
-Then the robot executed all pick‑and‑place motions for each block in both layers.
+This command causes real homing and motion. Confirm the work area and machine setup before running it. A successful dry run is not proof of physical clearance or successful grasping.
 
----
-
-## **Serial Command Format**
-Commands sent to the robot controller include:
-
-- `MOVE:j1,j2,j3,z`  
-- `GRIP`  
-- `RELEASE`  
-- `HOME`  
-- `REHOME_Z:h`  
-
-In dry‑run mode, each command is printed with a `[DRY]` prefix.
-
-Example:
-
-```
-[DRY] MOVE:-34.05,117.67,-83.62,5.00 → OK:MOVE
-```
-
----
-
-## **Configuration**
-All physical constants are in `config.py`.
-
-Key parameters:
-
-- `BLOCK_STUDS` — block size in studs (default: 2×2)  
-- `STUD_PITCH` — 0.0154 m (15.4 mm)  
-- `DUPLO_H_MM` — 19.2 mm  
-- `L1`, `L2` — arm lengths  
-
-Changing `BLOCK_STUDS` automatically rescales the grid and presets.
-
----
-
-## **Presets**
-Available floor‑plan shapes:
-
-1. Studio  
-2. Two rooms  
-3. L‑shaped  
-4. U‑shaped  
-5. T‑shaped  
-6. Bungalow  
-7. Custom (blank grid)
-
-All presets scale to the current grid size.
+See the [project README](../README.md) for firmware build instructions, the demonstration and repository status.
