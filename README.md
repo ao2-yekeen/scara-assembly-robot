@@ -2,13 +2,21 @@
 
 A 4-DOF SCARA block-assembly project developed at Heriot-Watt University. A Python controller converts a floor plan into a sequence of pick-and-place commands, sent to Arduino firmware over serial.
 
+<p align="center">
+  <a href="https://drive.google.com/file/d/1bch_skkfbKCsSWpbhE6QLBJJI1j0O4o6/view?usp=sharing">
+    <img src="docs/assets/scara-robot.png" alt="Physical SCARA prototype on its assembly board with two green block-placement plates" width="420">
+  </a>
+</p>
+
+*The assembled SCARA prototype. Click the photo to watch the project demonstration.*
+
 **[Watch the project demo](https://drive.google.com/file/d/1bch_skkfbKCsSWpbhE6QLBJJI1j0O4o6/view?usp=sharing)**
 
 <p align="center">
-  <img src="docs/assets/architecture.png" alt="SCARA report architecture: Python planning, serial communication, embedded control and actuators" width="620">
+  <img src="docs/assets/architecture.svg" alt="SCARA report architecture: Python planning, serial communication, embedded control and actuators" width="880">
 </p>
 
-*System architecture from the April 2026 report. The emergency-stop path is a design description; current limit-switch behaviour is documented in the [implementation notes](docs/system_architecture.md).*
+*Architecture redrawn from the current code. See the [implementation notes](docs/system_architecture.md) for homing and limit-switch behaviour.*
 
 **Python control · Arduino Mega 2560 · Four motion axes · Block assembly**
 
@@ -38,9 +46,9 @@ The demo link shows the project in action. A dry run exercises the Python comman
 
 ### From floor plan to motion
 
-<img src="docs/assets/python-flow.png" alt="Report workflow: select layout, calculate kinematics, validate workspace, dispatch commands and execute pick-and-place" width="430">
+<img src="docs/assets/python-flow.svg" alt="Report workflow: select layout, calculate kinematics, validate workspace, dispatch commands and execute pick-and-place" width="584">
 
-*Report-stage software workflow. The current entry point follows the loaded grid order; nearest-first ordering in this figure is not established by the current implementation.*
+*Current Python workflow, from layout selection to serial-command execution.*
 
 ## Results at a glance
 
