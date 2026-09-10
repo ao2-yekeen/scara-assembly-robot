@@ -4,6 +4,14 @@ A 4-DOF SCARA block-assembly project developed at Heriot-Watt University. A Pyth
 
 **[Watch the project demo](https://drive.google.com/file/d/1bch_skkfbKCsSWpbhE6QLBJJI1j0O4o6/view?usp=sharing)**
 
+<p align="center">
+  <img src="docs/assets/architecture.png" alt="SCARA report architecture: Python planning, serial communication, embedded control and actuators" width="620">
+</p>
+
+*System architecture from the April 2026 report. The emergency-stop path is a design description; current limit-switch behaviour is documented in the [implementation notes](docs/system_architecture.md).*
+
+**Python control · Arduino Mega 2560 · Four motion axes · Block assembly**
+
 ## My contribution
 
 I designed the system architecture and implemented all embedded firmware and Python control software, except the inverse kinematics code.
@@ -19,6 +27,30 @@ My work covered the embedded controller, Python application, serial communicatio
 - Arduino Mega 2560 firmware configured through PlatformIO.
 
 The demo link shows the project in action. A dry run exercises the Python command sequence using simulated acknowledgements; it does not measure placement accuracy or prove physical reliability.
+
+## Inside the system
+
+### Electronics
+
+<img src="docs/assets/electronics.png" alt="CircKit circuit figure showing Arduino Mega, four stepper drivers and motors, limit switches and gripper servo" width="820">
+
+*Circuit figure from the project report. It shows the original single-supply layout; the tested dual-supply arrangement is described in the [electronics notes](electronics/bill-of_materials.md).*
+
+### From floor plan to motion
+
+<img src="docs/assets/python-flow.png" alt="Report workflow: select layout, calculate kinematics, validate workspace, dispatch commands and execute pick-and-place" width="430">
+
+*Report-stage software workflow. The current entry point follows the loaded grid order; nearest-first ordering in this figure is not established by the current implementation.*
+
+## Results at a glance
+
+| Evidence | Result |
+| --- | --- |
+| Python tests | 59 reported in the April 2026 report |
+| Offline example | Two-block command rehearsal completed |
+| Four-motor supply voltage | 7.8 V with one supply; 11.7 V after the dual-supply change |
+| Physical positioning error | Approximately 5–8 mm at report stage |
+| Full autonomous physical build | Pending at report stage |
 
 ## Try it without hardware
 
