@@ -1,117 +1,77 @@
 # SCARA Autonomous Assembly Robot
 
-_4-DOF SCARA-based robotic system for autonomous block assembly, developed at Heriot-Watt University._
+A 4-DOF SCARA block-assembly project developed at Heriot-Watt University. A Python controller converts a floor plan into a sequence of pick-and-place commands, sent to Arduino firmware over serial.
 
----
+[Watch the project demo](https://drive.google.com/file/d/1bch_skkfbKCsSWpbhE6QLBJJI1j0O4o6/view?usp=sharing)
 
-## Demo
+## Engineering highlights
 
-[![▶ Watch Demo on Google Drive](https://img.shields.io/badge/Watch%20Demo-%E2%96%B6%20Google%20Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/file/d/1bch_skkfbKCsSWpbhE6QLBJJI1j0O4o6/view?usp=sharing)
+- Grid-based floor plans and an interactive preset editor.
+- Inverse kinematics and target reachability validation before homing.
+- One- or two-layer build sequencing, with a Z rehome between layers.
+- Separate serial interfaces for physical hardware and an offline command rehearsal.
+- Arduino Mega 2560 firmware configured through PlatformIO.
 
----
+The demo link shows the project in action. A dry run exercises the Python command sequence using simulated acknowledgements; it does not measure placement accuracy or prove physical reliability.
 
-## Project Overview
+## Try it without hardware
 
-This project implements a fully autonomous assembly robot built around a 4-degree-of-freedom SCARA (Selective Compliance Articulated Robot Arm) architecture. The system accepts user-defined grid layout files and autonomously executes the corresponding block placement sequence, handling all motion planning, sequencing logic, and microcontroller communication without manual intervention.
-
-The project was developed as part of a robotics engineering programme at Heriot-Watt University and spans embedded firmware, high-level software control, electronics design, and kinematic simulation.
-
----
-
-## System Architecture
-
-```
-+-------------------------------------------+
-|           High-Level Control              |
-|  (Python: grid parser, sequencer,         |
-|   motion planner, serial interface)       |
-+------------------+------------------------+
-                   |  USB Serial (UART)
-                   v
-+-------------------------------------------+
-|         Arduino Firmware (C++)            |
-|  (motor drivers, joint control,           |
-|   sensor feedback, command parser)        |
-+------------------+------------------------+
-                   |  PWM / Stepper signals
-                   v
-+-------------------------------------------+
-|         SCARA Robot Hardware              |
-|  (4 DOF arm, end-effector, sensors)       |
-+-------------------------------------------+
-```
-
-The Python layer reads a user-supplied grid file, computes the required block placement sequence, resolves each target position via inverse kinematics, and streams motion commands to the Arduino over a serial connection. The firmware executes low-level joint actuation and reports state back to the host.
-
----
-
-## Repository Structure
-
-```
-.
-├── docs/                    # Project documentation, reports, and diagrams
-├── electronics/             # Schematics, PCB layouts, and wiring diagrams
-├── firmware/                # Arduino/C++ microcontroller code
-│   └── main/                # Main firmware sketch and supporting modules
-├── high_level_control/      # Python software framework (primary codebase)
-│   ├── grid_parser.py       # Parses user-supplied grid layout files
-│   ├── sequencer.py         # Converts grid data into ordered placement steps
-│   ├── motion_planner.py    # Generates joint trajectories for each step
-│   ├── serial_interface.py  # Handles serial communication with firmware
-│   └── README.md            # Detailed usage guide for this module
-├── simulations/             # Kinematic and motion simulations
-├── .gitignore
-└── README.md
-```
-
----
-
-## How to Run
-
-### Prerequisites
-
-- Python 3.8 or higher
-- `pyserial` library
-- Arduino IDE (for firmware upload)
-- A connected SCARA robot (or simulation mode)
-
-Install Python dependencies:
-
-```bash
-pip install pyserial
-```
-
-### Running the High-Level Controller
-
-The main Python script **must be executed from within the `high_level_control/` directory**:
+Use Python 3.10 or newer. From the repository root:
 
 ```bash
 cd high_level_control
-python main.py --grid <path_to_grid_file>
+python3 main.py --floor example_floor_plan.txt --dry-run --layers 1
 ```
 
-Refer to [`high_level_control/README.md`](high_level_control/README.md) for full usage options, grid file format specification, and configuration details.
+The supplied example selects two blocks. The offline run should finish with a two-block completion message. No serial device or third-party Python package is required for this path.
 
-### Uploading Firmware
+For the interactive editor:
 
-Open `firmware/main/main.ino` in the Arduino IDE, select the correct board and port, and upload. Ensure the baud rate in the firmware matches the value configured in the Python serial interface.
+```bash
+python3 main.py --dry-run
+```
 
----
+See the [controller guide](high_level_control/ReadMe.md) for the floor-plan format and options.
 
-## Tech Stack
+## Hardware setup
 
-| Layer | Technology |
-|---|---|
-| High-level control | Python 3 |
-| Microcontroller firmware | C++ / Arduino |
-| Serial communication | UART via `pyserial` |
-| Kinematic simulation | Python (NumPy / Matplotlib) |
-| Electronics design | KiCad / Fritzing |
-| Version control | Git / GitHub |
+Review the machine-specific geometry, joint settings, heights and serial settings in [config.py](high_level_control/config.py) before operating the robot.
 
----
+Install the serial dependency and run from the controller directory:
 
-## Developed At
+```bash
+python3 -m pip install pyserial
+python3 main.py --floor example_floor_plan.txt --port COM5 --layers 1
+```
 
-**Heriot-Watt University** — Robotics Engineering Project
-Academic Year 2025–2026
+Replace COM5 with the connected controller's port. This command homes and moves the physical robot.
+
+The firmware is [firmware/src/main.cpp](firmware/src/main.cpp). With PlatformIO installed, build it from the repository root:
+
+```bash
+python3 -m platformio run --project-dir firmware -e megaatmega2560
+```
+
+The board and dependencies are defined in [firmware/platformio.ini](firmware/platformio.ini).
+
+## Code map
+
+| Component | Entry point |
+| --- | --- |
+| CLI and sequencing orchestration | [main.py](high_level_control/main.py) |
+| Floor-plan file handling | [grid.py](high_level_control/grid.py) |
+| Presets and interactive editor | [presets.py](high_level_control/presets.py), [editor.py](high_level_control/editor.py) |
+| Kinematics and reachability | [kinematics.py](high_level_control/kinematics.py) |
+| Pick-and-place sequence | [builder.py](high_level_control/builder.py) |
+| Offline and real serial interfaces | [serial_comms.py](high_level_control/serial_comms.py) |
+| Existing software tests | [tests](high_level_control/tests/) |
+
+## Evidence and current limits
+
+The repository contains a linked demonstration, controller implementation, firmware and software tests. Repeated-trial placement success rates, placement error and cycle-time measurements are not reported here.
+
+The architecture document, bill of materials and 2D visualiser currently contain empty placeholders. They are not completed deliverables.
+
+This repository presents the project implementation. It does not yet assign individual ownership of the software, firmware, electronics or mechanical work; those contributions should be confirmed before attributing the whole system to one person.
+
+Developed at Heriot-Watt University, academic year 2025–2026.
