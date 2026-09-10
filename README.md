@@ -74,8 +74,14 @@ The board and dependencies are defined in [firmware/platformio.ini](firmware/pla
 
 ## Evidence and current limits
 
-The repository contains a linked demonstration, controller implementation, firmware and software tests. Repeated-trial placement success rates, placement error and cycle-time measurements are not reported here.
+The April 2026 project report records 59 Python unit tests, individual motor testing and electrical load testing. It reports approximately 5–8 mm positioning error against a ±1.5 mm target; a full autonomous physical build was still pending at that stage. These are report-stage results, not new hardware measurements.
 
-The architecture document, bill of materials and 2D visualiser currently contain empty placeholders. They are not completed deliverables.
+## Project documentation
+
+- [System architecture](docs/system_architecture.md): control-flow diagram, PC/firmware responsibilities, command interface and current implementation details.
+- [Electronics and bill of materials](electronics/bill-of_materials.md): component inventory, firmware pin assignments and reported power measurements.
+- [Testing and results](docs/testing_and_results.md): reported test coverage, offline example, physical accuracy and engineering lessons.
+
+The editable circuit schematic and mechanical CAD are not supplied here. The 2D visualiser remains an empty placeholder; the offline example is a serial-command rehearsal.
 
 Developed at Heriot-Watt University, academic year 2025–2026.
