@@ -2,7 +2,13 @@
 
 A 4-DOF SCARA block-assembly project developed at Heriot-Watt University. A Python controller converts a floor plan into a sequence of pick-and-place commands, sent to Arduino firmware over serial.
 
-[Watch the project demo](https://drive.google.com/file/d/1bch_skkfbKCsSWpbhE6QLBJJI1j0O4o6/view?usp=sharing)
+**[Watch the project demo](https://drive.google.com/file/d/1bch_skkfbKCsSWpbhE6QLBJJI1j0O4o6/view?usp=sharing)**
+
+## My contribution
+
+I designed the system architecture and implemented all embedded firmware and Python control software, except the inverse kinematics code.
+
+My work covered the embedded controller, Python application, serial communication and integration of the control layers into the assembly workflow. The inverse kinematics implementation was contributed separately; I do not claim authorship of that code.
 
 ## Engineering highlights
 
@@ -71,7 +77,5 @@ The board and dependencies are defined in [firmware/platformio.ini](firmware/pla
 The repository contains a linked demonstration, controller implementation, firmware and software tests. Repeated-trial placement success rates, placement error and cycle-time measurements are not reported here.
 
 The architecture document, bill of materials and 2D visualiser currently contain empty placeholders. They are not completed deliverables.
-
-This repository presents the project implementation. It does not yet assign individual ownership of the software, firmware, electronics or mechanical work; those contributions should be confirmed before attributing the whole system to one person.
 
 Developed at Heriot-Watt University, academic year 2025–2026.
